@@ -12,6 +12,8 @@ class SearchSpace:
 
         self.space = _generate_search_space()
 
+    # Define search space using AutoGluon syntax.
+    # See more of the syntax at: https://autogluon.mxnet.io/api/autogluon.space.html
     def _generate_search_space(self):
         # Define search space for measurement model
         search_space = {var: ag.space.Categorical(*self.factorNames)
@@ -23,3 +25,6 @@ class SearchSpace:
                 searchSpace[str((self.factorNames[i], self.factorNames[j]))] = ag.space.Categorical(*list(range(3)))
 
         return search_space
+
+    def fetch(self):
+        return self.space
