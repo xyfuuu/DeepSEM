@@ -5,20 +5,20 @@ from SEM import SemModel
 
 class ModelEvaluator:
 
-    def __init__(self):
-        self.sem = SemModel()
+    @staticmethod
+    def _evaluate_with_SEM(model):
+        sem = SemModel()
 
-    def _evaluate_with_SEM(self, model):
         try:
-            if_built = self.sem.build_sem_model(model)
+            if_built = sem.build_sem_model(model)
             if not if_built:
                 return False, _
 
-            if_fit = self.sem.fit_sem_model(data)
+            if_fit = sem.fit_sem_model(data)
             if not if_fit['is_fitted']:
                 return False, _
 
-            measure_indexes = self.sem.evaluate_sem_model()
+            measure_indexes = sem.evaluate_sem_model()
             if not measure_indexes['is_evaluated']:
                 return False, _
 
