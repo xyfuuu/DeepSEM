@@ -2,7 +2,7 @@ import autogluon as ag
 import rpy2.robjects as ro
 
 from search_space import SearchSpace
-from model_estimation import ModelEvaluator
+from model_evaluation import ModelEvaluator
 from search_strategy import ModelSearcher
 
 if __name__ == '__main__':
