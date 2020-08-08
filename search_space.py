@@ -10,19 +10,20 @@ class SearchSpace:
         self.factorCount = len(factor_names)
         self.variableCount = len(variable_names)
 
-        self.space = _generate_search_space()
+        self.space = self._generate_search_space(factor_names, len(factor_names), variable_names)
 
     # Define search space using AutoGluon syntax.
     # See more of the syntax at: https://autogluon.mxnet.io/api/autogluon.space.html
-    def _generate_search_space(self):
+    @staticmethod
+    def _generate_search_space(factor_names, factor_count, variable_names):
         # Define search space for measurement model
-        search_space = {var: ag.space.Categorical(*self.factorNames)
-                        for var in self.variableNames}
+        search_space = {var: ag.space.Categorical(*factor_names)
+                        for var in variable_names}
 
         # Define search space for regressions model
-        for i in range(self.factorCount):
+        for i in range(factor_count):
             for j in range(i):
-                searchSpace[str((self.factorNames[i], self.factorNames[j]))] = ag.space.Categorical(*list(range(3)))
+                search_space[str((factor_names[i], factor_names[j]))] = ag.space.Categorical(*list(range(3)))
 
         return search_space
 
@@ -48,16 +49,22 @@ class SearchSpace:
 
     # This function convert a model sampled from the search space in AutoGluon format to lavaan format.
     # This function is useful when you wanna evaluated the sampled model using the conventional SEM method.
-    @staticmethod
-    def gluon2lavaan(args):
-        measurement_dict = {fac: [] for fac in facNames}
-        regressions_dict = {fac: [] for fac in facNames}
+    def gluon2lavaan(self, args):
+        measurement_dict = {fac: [] for fac in self.factorNames}
+        regressions_dict = {fac: [] for fac in self.factorNames}
 
         for var, choice in args.items():
-            if var == 'task_id':
+            if '▁' in var:
+                var = var.split('▁')[0]
+            elif var == 'task_id':
                 continue
-            elif var[0] != '(':  # measurement
-                measurement_dict[choice].append(var)
+
+            if var[0] != '(':  # measurement
+                # This if is added because the special format of get_best_config() in AutoGlugon.
+                if isinstance(choice, int):
+                    measurement_dict[self.factorNames[choice]].append(var)
+                else:
+                    measurement_dict[choice].append(var)
             else:  # regressions
                 var_tuple = eval(var)
                 if choice == 1:
@@ -65,13 +72,7 @@ class SearchSpace:
                 elif choice == 2:
                     regressions_dict[var_tuple[1]].append(var_tuple[0])
 
-        # Prior knowledge from SEM: factors usually have more than 2 indicators.
-        for fac, ind in measurement_dict.items():
-            if len(ind) < 2:
-                reporter(reward=0)
-                return
-
-        model_lavaan = _dict2lavaan(measurementDict, '=~') + _dict2lavaan(regressionsDict, '~')
+        model_lavaan = self._dict2lavaan(measurement_dict, '=~') + self._dict2lavaan(regressions_dict, '~')
 
         return model_lavaan
 

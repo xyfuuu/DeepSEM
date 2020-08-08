@@ -20,8 +20,10 @@ if __name__ == '__main__':
 
     model_evaluator = ModelEvaluator()
 
-    rl_searcher = ModelSearcher(search_space, model_evaluator)
+    rl_searcher = ModelSearcher(search_space, model_evaluator, data)
 
     rl_searcher.search(verbose=True)
 
     rl_searcher.print_best_solution()
+
+    rl_searcher.plot_learning_curve()
