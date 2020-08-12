@@ -13,13 +13,10 @@ class ModelSearcher:
 
         @ag.args(**space)
         def evaluate_callback(args, reporter):
-            model = search_space.gluon2lavaan(args)
+            model = search_space.gluon2dict(args)
             reward = model_evaluator.evaluate(model, data)
             reporter(reward=reward)
 
-        # Running this function might crash Python.
-        # This problem is caused by the multiprocessing of the RL algorithm and lavaan in R.
-        # But the numeric part has been take care of, so the result is not corrupted.
         self.searcher = ag.scheduler.RLScheduler(evaluate_callback,
                                                  resource={'num_cpus': 1, 'num_gpus': 0},
                                                  num_trials=200,
@@ -32,6 +29,9 @@ class ModelSearcher:
         self.data = data
 
     def search(self, verbose=False):
+        # Running this function might crash Python.
+        # This problem is caused by the multiprocessing of the RL algorithm and lavaan in R.
+        # But the numeric part has been take care of, so the result is not corrupted.
         self.searcher.run()
         self.searcher.join_jobs()
 
@@ -42,8 +42,9 @@ class ModelSearcher:
     def print_best_solution(self):
         args = self.searcher.get_best_config()
 
-        model = self.searchSpace.gluon2lavaan(args)
-        print('The best model looks like:\n' + model)
+        model = self.searchSpace.gluon2dict(args)
+        model_lavaan = self.evaluator.dict2lavaan(model)
+        print('The best model looks like:\n' + model_lavaan)
 
         reward = self.evaluator.evaluate(model, self.data)
         print('The reward is: %f' % reward)

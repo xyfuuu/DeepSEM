@@ -18,7 +18,7 @@ if __name__ == '__main__':
     variableNames = data.columns
     search_space = SearchSpace(factorNames, variableNames)
 
-    model_evaluator = ModelEvaluator()
+    model_evaluator = ModelEvaluator(variableNames)
 
     rl_searcher = ModelSearcher(search_space, model_evaluator, data)
 
