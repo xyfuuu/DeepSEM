@@ -23,35 +23,16 @@ class SearchSpace:
         # Define search space for regressions model
         for i in range(factor_count):
             for j in range(i):
-                search_space[str((factor_names[i], factor_names[j]))] = ag.space.Categorical(*list(range(3)))
+                search_space[str((factor_names[i], factor_names[j]))] = ag.space.Categorical(*list(range(4)))
 
         return search_space
 
-    # This is a helper function to convert model in python dictionary format to lavaan string format.
-    # To understand this function, you need to understand lavaan syntax and the function `gluon2lavaan`.
-    @staticmethod
-    def _dict2lavaan(data_dict, separator):
-        data_lavaan = ''
-        for parent in data_dict.keys():
-            if not data_dict[parent]:
-                continue
-
-            related_nodes = ''
-            for son in data_dict[parent]:
-                if not related_nodes:
-                    related_nodes += son
-                else:
-                    related_nodes += ' + ' + son
-
-            data_lavaan += parent + ' ' + separator + ' ' + related_nodes + '\n'
-
-        return data_lavaan
-
     # This function convert a model sampled from the search space in AutoGluon format to lavaan format.
     # This function is useful when you wanna evaluated the sampled model using the conventional SEM method.
-    def gluon2lavaan(self, args):
+    def gluon2dict(self, args):
         measurement_dict = {fac: [] for fac in self.factorNames}
         regressions_dict = {fac: [] for fac in self.factorNames}
+        covariance_dict = {fac: [] for fac in self.factorNames}
 
         for var, choice in args.items():
             if '▁' in var:
@@ -71,10 +52,14 @@ class SearchSpace:
                     regressions_dict[var_tuple[0]].append(var_tuple[1])
                 elif choice == 2:
                     regressions_dict[var_tuple[1]].append(var_tuple[0])
+                elif choice == 3:
+                    covariance_dict[var_tuple[0]].append(var_tuple[1])
 
-        model_lavaan = self._dict2lavaan(measurement_dict, '=~') + self._dict2lavaan(regressions_dict, '~')
+        model_compressed = {'measurement_dict': measurement_dict,
+                            'regressions_dict': regressions_dict,
+                            'covariance_dict': covariance_dict}
 
-        return model_lavaan
+        return model_compressed
 
     def fetch(self):
         return self.space
