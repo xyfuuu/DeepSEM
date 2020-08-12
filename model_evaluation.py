@@ -7,9 +7,10 @@ from SEM import SemModel
 
 class ModelEvaluator:
 
-    def __init__(self, variable_names):
+    def __init__(self, variable_descriptions):
         model = SentenceTransformer('distiluse-base-multilingual-cased')
-        self.variable_embedded = model.encode(variable_names)
+        features = model.encode(list(variable_descriptions.values()))
+        self.variable_embedded = {v: f for v, f in zip(variable_descriptions.keys(), features)}
 
     @staticmethod
     def _evaluate_with_sem(model, data):
@@ -67,6 +68,22 @@ class ModelEvaluator:
 
         return model_lavaan
 
+    def _calculate_nlp_distance(self, model_compressed):
+        model = model_compressed['measurement_dict']
+
+        loss = 0
+        for factor, variables in model.items():
+            factor_loss = 0
+            for a in variables:
+                for b in variables:
+                    factor_loss += np.sum(np.square(self.variable_embedded[a] - self.variable_embedded[b]))
+            factor_loss /= len(variables)
+            loss += factor_loss
+
+        reward = 1 / loss * 20
+
+        return reward
+
     def evaluate(self, model, data):
         sem_indexes = ModelEvaluator._evaluate_with_sem(model, data)
 
@@ -75,8 +92,9 @@ class ModelEvaluator:
 
         agfi = sem_indexes['agfi']
         rmsea = sem_indexes['rmsea']
+        nlp_reward = self._calculate_nlp_distance(model)
 
-        index = agfi - rmsea * 10
+        index = agfi - rmsea * 10 + nlp_reward
         index = 1 / (1 + np.exp(-index))
 
         return index
