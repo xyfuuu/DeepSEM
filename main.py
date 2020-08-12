@@ -1,18 +1,13 @@
 import autogluon as ag
-import rpy2.robjects as ro
+import pandas as pd
 
 from search_space import SearchSpace
 from model_evaluation import ModelEvaluator
 from search_strategy import ModelSearcher
 
 if __name__ == '__main__':
-    # Load this dataset in R.
-    ro.packages.importr('lavaan')
-    rData = ro.r('PoliticalDemocracy')
-
-    # Convert it to Python Dataframe.
-    with ro.conversion.localconverter(ro.default_converter + ro.pandas2ri.converter):
-        data = ro.conversion.rpy2py(rData)
+    # Learn more about this dataset at: https://rdrr.io/cran/lavaan/man/PoliticalDemocracy.html
+    data = pd.read_csv('data/political_democracy.csv')
 
     factorNames = ['factor1', 'factor2', 'factor3']
     variableNames = data.columns
