@@ -7,13 +7,14 @@ from model_evaluation import ModelEvaluator
 from search_strategy import ModelSearcher
 
 if __name__ == '__main__':
-    # Load this dataset in R.
-    ro.packages.importr('lavaan')
-    rData = ro.r('PoliticalDemocracy')
-    
+    # Redirect the R console.
     def logErrorMsg(s):
         pass
     rlib.callbacks.consolewrite_warnerror = logErrorMsg
+    
+    # Load this dataset in R.
+    ro.packages.importr('lavaan')
+    rData = ro.r('PoliticalDemocracy')
 
     # Convert it to Python Dataframe.
     with ro.conversion.localconverter(ro.default_converter + ro.pandas2ri.converter):
