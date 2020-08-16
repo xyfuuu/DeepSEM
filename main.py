@@ -1,11 +1,17 @@
-import autogluon as ag
 import pandas as pd
+import autogluon as ag
+import rpy2.rinterface_lib as rlib
 
 from search_space import SearchSpace
 from model_evaluation import ModelEvaluator
 from search_strategy import ModelSearcher
 
 if __name__ == '__main__':
+    # Redirect the R console.
+    def logErrorMsg(s):
+        pass
+    rlib.callbacks.consolewrite_warnerror = logErrorMsg
+
     # Learn more about this dataset at: https://rdrr.io/cran/lavaan/man/PoliticalDemocracy.html
     data = pd.read_csv('data/political_democracy.csv')
 
