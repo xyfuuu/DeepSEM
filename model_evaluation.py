@@ -17,24 +17,15 @@ class ModelEvaluator:
         model = ModelEvaluator.dict2lavaan(model)
         sem = SemModel()
 
-        try:
-            if_built = sem.build_sem_model(model)
-            if not if_built:
-                return None
-
-            if_fit = sem.fit_sem_model(data)
-            if not if_fit['is_fitted']:
-                return None
-
-            measure_indexes = sem.evaluate_sem_model()
-            if not measure_indexes['is_evaluated']:
-                return None
-
-            return measure_indexes
-        except Exception:
-            logging.error(Exception)
-
+        fit_result = sem.fit_sem_model(model, data)
+        if not fit_result['is_fitted']:
             return None
+
+        measure_indexes = sem.evaluate_sem_model()
+        if not measure_indexes['is_evaluated']:
+            return None
+
+        return measure_indexes
 
     # This is a helper function to convert model in python dictionary format to lavaan string format.
     # Before modifying, you need to understand lavaan syntax and the function `gluon2dict` in `search_space.py`.
@@ -80,7 +71,7 @@ class ModelEvaluator:
             factor_loss /= len(variables)
             loss += factor_loss
 
-        reward = 1 / loss * 20
+        reward = -loss
 
         return reward
 
