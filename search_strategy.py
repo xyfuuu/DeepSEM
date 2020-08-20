@@ -37,7 +37,7 @@ class ModelSearcher:
 
         self.searcher = RLScheduler(evaluate_callback,
                                     resource={'num_cpus': 1, 'num_gpus': 0},
-                                    num_trials=40,
+                                    num_trials=100,
                                     reward_attr='reward',
                                     controller_batch_size=4,
                                     controller_lr=5e-3)

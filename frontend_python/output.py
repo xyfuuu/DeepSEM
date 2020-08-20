@@ -10,7 +10,8 @@ class PaintPicture(QtWidgets.QDialog):
 
         self.models = models
         self.current_id = 0
-        self.last_picture = None
+        self.current_label = None
+        self.current_image = None
 
         layout = QtWidgets.QVBoxLayout()
 
@@ -21,6 +22,10 @@ class PaintPicture(QtWidgets.QDialog):
         self.pre_btn = QtWidgets.QPushButton('Previous')
         self.pre_btn.clicked.connect(self._previous_model)
         layout.addWidget(self.pre_btn)
+
+        self.save_btn = QtWidgets.QPushButton('Save')
+        self.save_btn.clicked.connect(self._save_image)
+        layout.addWidget(self.save_btn)
 
         self.setLayout(layout)
         self.show()
@@ -51,6 +56,16 @@ class PaintPicture(QtWidgets.QDialog):
             self.nxt_btn.setEnabled(False)
         else:
             self.nxt_btn.setEnabled(True)
+
+        if self.current_label:
+            self.save_btn.setEnabled(True)
+        else:
+            self.save_btn.setEnabled(False)
+
+    def _save_image(self):
+        name = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', directory='dsem_result', filter='*.png')
+        if name:
+            self.current_image.save(name[0], format='png')
 
     def _graphviz_render(self):
         # Potential Engine Options = ['dot', 'neato', 'fdp']
@@ -84,12 +99,13 @@ class PaintPicture(QtWidgets.QDialog):
         imageLabel.setPixmap(QtGui.QPixmap.fromImage(image))
 
         layout = self.layout()
-        if self.last_picture:
-            layout.removeWidget(self.last_picture)
-            self.last_picture.deleteLater()
+        if self.current_label:
+            layout.removeWidget(self.current_label)
+            self.current_label.deleteLater()
         layout.addWidget(imageLabel)
 
-        self.last_picture = imageLabel
+        self.current_label = imageLabel
+        self.current_image = image
 
 
 class GraphvizVisualization:
