@@ -1,5 +1,4 @@
 import pandas as pd
-import autogluon as ag
 import rpy2.rinterface_lib as rlib
 
 from search_space import SearchSpace
@@ -8,9 +7,10 @@ from search_strategy import ModelSearcher
 
 if __name__ == '__main__':
     # Redirect the R console.
-    def logErrorMsg(s):
+    def log_error_msg(s):
         pass
-    rlib.callbacks.consolewrite_warnerror = logErrorMsg
+
+    rlib.callbacks.consolewrite_warnerror = log_error_msg
 
     # Learn more about this dataset at: https://rdrr.io/cran/lavaan/man/PoliticalDemocracy.html
     data = pd.read_csv('data/political_democracy.csv')
@@ -38,6 +38,6 @@ if __name__ == '__main__':
 
     rl_searcher.search(verbose=True)
 
-    rl_searcher.print_best_solution()
+    rl_searcher.print_topk_solution(3, graphviz=True)
 
     rl_searcher.plot_learning_curve()
