@@ -37,7 +37,7 @@ class ModelSearcher:
 
         self.searcher = RLScheduler(evaluate_callback,
                                     resource={'num_cpus': 1, 'num_gpus': 0},
-                                    num_trials=100,
+                                    num_trials=500,
                                     reward_attr='reward',
                                     controller_batch_size=4,
                                     controller_lr=5e-3)
@@ -62,7 +62,7 @@ class ModelSearcher:
 
         if graphviz:
             models = [self.searchSpace.gluon2dict(arg) for arg in args]
-            vis = GraphvizVisualization(models)
+            vis = GraphvizVisualization(models, self.evaluator.variable_descriptions)
             vis.show()
         else:
             for rank, arg in enumerate(args):

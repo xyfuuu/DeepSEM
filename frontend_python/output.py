@@ -5,10 +5,14 @@ from PyQt5 import QtGui, QtWidgets
 
 
 class PaintPicture(QtWidgets.QDialog):
-    def __init__(self, models):
+    def __init__(self, models, variable_description=None):
         super(PaintPicture, self).__init__()
 
+        if variable_description is None:
+            variable_description = dict()
         self.models = models
+        self.variableDescription = variable_description
+
         self.current_id = 0
         self.current_label = None
         self.current_image = None
@@ -69,7 +73,7 @@ class PaintPicture(QtWidgets.QDialog):
 
     def _graphviz_render(self):
         # Potential Engine Options = ['dot', 'neato', 'fdp']
-        dot = Digraph(comment='Result from DSEM', engine='dot')
+        dot = Digraph(comment='Result from DSEM', engine='fdp')
 
         model = self.models[self.current_id]
         measurement_dict = model['measurement_dict']
@@ -78,7 +82,10 @@ class PaintPicture(QtWidgets.QDialog):
 
         for latent in measurement_dict.keys():
             for observed in measurement_dict[latent]:
-                dot.edge(observed, latent)
+                if observed in self.variableDescription.keys():
+                    dot.edge(self.variableDescription[observed], latent)
+                else:
+                    dot.edge(observed, latent)
 
         for latent1 in regressions_dict.keys():
             for latent2 in regressions_dict[latent1]:
@@ -109,9 +116,9 @@ class PaintPicture(QtWidgets.QDialog):
 
 
 class GraphvizVisualization:
-    def __init__(self, models):
+    def __init__(self, models, variable_description=None):
         self.app = QtWidgets.QApplication(sys.argv)
-        self.windows = PaintPicture(models)
+        self.windows = PaintPicture(models, variable_description)
 
     def show(self):
         self.app.exec_()
@@ -127,7 +134,22 @@ if __name__ == "__main__":
     }, 'covariance_dict': {
         'factor3': ['factor1']
     }}
+
+    variableDescription = {
+        'y1': 'Expert ratings of the freedom of the press in 1960',
+        'y2': 'The freedom of political opposition in 1960',
+        'y3': 'The fairness of elections in 1960',
+        'y4': 'The effectiveness of the elected legislature in 1960',
+        'y5': 'Expert ratings of the freedom of the press in 1965',
+        'y6': 'The freedom of political opposition in 1965',
+        'y7': 'The fairness of elections in 1965',
+        'y8': 'The effectiveness of the elected legislature in 1965',
+        'x1': 'The gross national product (GNP) per capita in 1960',
+        'x2': 'The inanimate energy consumption per capita in 1960',
+        'x3': 'The percentage of the labor force in industry in 1960'
+    }
+
     models = [sample_model, sample_model, sample_model]
 
-    vis = GraphvizVisualization(models)
+    vis = GraphvizVisualization(models, variableDescription)
     vis.show()
