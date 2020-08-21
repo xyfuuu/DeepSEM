@@ -3,24 +3,14 @@ import pandas as pd
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from diagram_items import Arrow, DoubleArrow, DiagramTextItem, DiagramItem
+from generate_model import generateModel
 
 # pyrcc5 diagramscene.qrc -o diagramscene_rc.py
 import diagramscene_rc
-from output import GraphvizVisualization
-
+from output import PaintPicture
 
 class DiagramScene(QtWidgets.QGraphicsScene):
     InsertItem, InsertLine, InsertDoubleLine, InsertText, MoveItem = range(5)
-    observed_list = list()
-    observed_dict = dict()
-    observed_cnt = 0
-    latent_list = list()
-    latent_dict = dict()
-    latent_cnt = 0
-    factorType = dict()
-    measurement_dict = dict()
-    regressions_dict = dict()
-    covariance_dict = dict()
 
     itemInserted = QtCore.pyqtSignal(DiagramItem)
 
@@ -40,6 +30,8 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         self.myTextColor = QtCore.Qt.black
         self.myLineColor = QtCore.Qt.black
         self.myFont = QtGui.QFont()
+        
+        self.generateModel = generateModel()
 
     def setLineColor(self, color):
         self.myLineColor = color
@@ -123,10 +115,10 @@ class DiagramScene(QtWidgets.QGraphicsScene):
 
             if self.myMode == self.InsertLine:
                 arrow = Arrow(startItem, endItem)
-                self.AddDirectedEdge(startItem, endItem)
+                self.generateModel.addDirectedEdge(startItem, endItem)
             else:
                 arrow = DoubleArrow(startItem, endItem)
-                self.AddCovarianceEdge(startItem, endItem)
+                self.generateModel.addCovarianceEdge(startItem, endItem)
 
             arrow.setColor(self.myLineColor)
             startItem.addArrow(arrow)
@@ -150,22 +142,7 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         self.addItem(item)
         item.setPos(itemPosition)
         self.itemInserted.emit(item)
-        self.factorType[item] = itemType
-        item_rename = ""
-        if itemType == 1:
-            item_rename = "x" + str(self.observed_cnt)
-            self.observed_dict[item] = item_rename
-            self.observed_list.append(item_rename)
-            self.observed_cnt = self.observed_cnt + 1
-        else:
-            item_rename = "factor" + str(self.latent_cnt)
-            self.latent_dict[item] = item_rename
-            self.latent_list.append(item_rename)
-            self.latent_cnt = self.latent_cnt + 1
-        self.covariance_dict[item_rename] = []
-        self.measurement_dict[item_rename] = []
-        self.regressions_dict[item_rename] = []
-        return {'item': item, 'itemName': item_rename}
+        return self.generateModel.addFactor(item, itemType)
 
     def addTextItem(self, textContent, itemPosition):
         textItem = DiagramTextItem()
@@ -187,103 +164,6 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         cursor.clearSelection()
         textItem.setTextCursor(cursor)
         return textItem
-
-    def AddDirectedEdge(self, startItem, endItem):
-        startName = ""
-        endName = ""
-        if self.factorType[startItem] != self.factorType[endItem]:
-            if self.factorType[startItem] == 1:
-                startName = self.observed_dict[startItem]
-                endName = self.latent_dict[endItem]
-            else:
-                startName = self.observed_dict[endItem]
-                endName = self.latent_dict[startItem]
-            self.measurement_dict[startName].append(endName)
-        else:
-            if self.factorType[startItem] == 1:
-                startName = self.observed_dict[startItem]
-                endName = self.observed_dict[endItem]
-            else:
-                startName = self.latent_dict[startItem]
-                endName = self.latent_dict[endItem]
-            self.regressions_dict[startName].append(endName)
-
-    def AddCovarianceEdge(self, startItem, endItem):
-        startName = ""
-        endName = ""
-        if self.factorType[startItem] == 1:
-            startName = self.observed_dict[startItem]
-        else:
-            startName = self.latent_dict[startItem]
-        if self.factorType[endItem] == 1:
-            endName = self.observed_dict[endItem]
-        else:
-            endName = self.latent_dict[endItem]
-        if self.factorType[startItem] == 0 and self.factorType[endItem] == 1 :
-            temp = startName
-            startName = endName
-            endName = temp
-        self.covariance_dict[startName].append(endName)
-    
-    def RemoveFactor(self, item):
-        item_rename = ""
-        if self.factorType[item] == 1:
-            item_rename = self.observed_dict.pop(item)
-            self.observed_list.remove(item_rename)
-        else:
-            item_rename = self.latent_dict.pop(item)
-            self.latent_list.remove(item_rename)
-        if item_rename in self.measurement_dict:
-            self.measurement_dict.pop(item_rename)
-        if item_rename in self.regressions_dict:
-            self.regressions_dict.pop(item_rename)
-        if item_rename in self.covariance_dict:
-            self.covariance_dict.pop(item_rename)
-        for tmp in self.measurement_dict:
-            if item_rename in self.measurement_dict[tmp]:
-                self.measurement_dict[tmp].pop(self.measurement_dict[tmp].index(item_rename))
-        for tmp in self.regressions_dict:
-            if item_rename in self.regressions_dict[tmp]:
-                self.regressions_dict[tmp].pop(self.regressions_dict[tmp].index(item_rename))
-        for tmp in self.covariance_dict:
-            if item_rename in self.covariance_dict[tmp]:
-                self.covariance_dict[tmp].pop(self.covariance_dict[tmp].index(item_rename))
-    
-    def RemoveRelation(self, item):
-        startItem = item.start_item
-        endItem = item.end_item
-        startName = ""
-        endName = ""
-        if self.factorType[startItem] == 1:
-            startName = self.observed_dict[startItem]
-        else:
-            startName = self.latent_dict[startItem]
-        if self.factorType[endItem] == 1:
-            endName = self.observed_dict[endItem]
-        else:
-            endName = self.latent_dict[endItem]
-        if self.factorType[startItem] != self.factorType[endItem]:
-            if self.factorType[startItem] != 1:
-                temp = startName
-                startName = endName
-                endName = startName
-        if isinstance(item, Arrow):
-            if startName in self.observed_dict:
-                if endName in self.observed_dict[startName]:
-                    self.observed_dict[startName].pop(endName)
-            if startName in self.regressions_dict:
-                if endName in self.regressions_dict[startName]:
-                    self.regressions_dict[startName].pop(endName)
-        else:
-            if startName in self.covariance_dict:
-                self.covariance_dict[startName].pop(endName)
-            else:
-                self.covariance_dict[endName].pop(startName)
-                
-    def Output(self):
-        return {'measurement_dict':self.measurement_dict,
-                'regressions_dict':self.regressions_dict,
-                'covariance_dict':self.covariance_dict}
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -348,18 +228,16 @@ class MainWindow(QtWidgets.QMainWindow):
 
     # Call the backend in this function.
     def doCalculation(self):
-        model = self.scene.Output()
-        vis = GraphvizVisualization([model])
-        vis.show()
+        model = self.scene.generateModel.outputModel()
+        self.result_windows = PaintPicture([model])
         
     def deleteItem(self):
-        print("begin remove")
         for item in self.scene.selectedItems():
             if isinstance(item, DiagramItem):
                 item.removeArrows()
-                self.scene.RemoveFactor(item)
+                self.scene.generateModel.removeFactor(item)
             else:
-                self.scene.RemoveRelation(item)
+                self.scene.generateModel.removeRelation(item)
             self.scene.removeItem(item)
             
     def pointerGroupClicked(self, i):
@@ -395,8 +273,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.pointerTypeGroup.button(DiagramScene.MoveItem).setChecked(True)
         self.scene.setMode(self.pointerTypeGroup.checkedId())
         self.buttonGroup.button(item.diagramType).setChecked(False)
-        print(item)
-        print(item.diagramType)
 
     def textInserted(self, item):
         self.buttonGroup.button(self.InsertTextButton).setChecked(False)
