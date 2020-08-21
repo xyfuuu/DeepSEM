@@ -1,6 +1,7 @@
 import rpy2.robjects as robjects
 from rpy2.robjects.packages import importr
 from rpy2.robjects import r, pandas2ri
+from rpy2.robjects.vectors import  ListVector
 import time
 
 CREATE_MODEL_STMT_EXAMPLE = '''
@@ -23,43 +24,26 @@ CREATE_MODEL_STMT_EXAMPLE = '''
 class SemModel:
 
     def __init__(self):
-        importr('lavaan')
-        robjects.r('fit_sem <- function(data){fit <<- sem(model, data)}')
-        robjects.r('evaluate_sem<-function(){res<<-fitMeasures(fit)}')
-
-    # This function uses 'create_model_stmt' to create model.
-    # Please format the 'create_model_stmt' as the example above.
-    @staticmethod
-    def build_sem_model(create_model_stmt):
-        create_model_stmt = 'model <- \'{}\''.format(create_model_stmt)
-        try:
-            robjects.r(create_model_stmt)
-        except:
-            print('Error in build_sem_model function.')
-            return False
-        else:
-            return True
+        self.lavaan = importr('lavaan')
+        self.base = importr('base')
 
     # TODO: Add more parameter options.
     # Input 'data' can be either pandas dataframe or R dataframe.
-    @staticmethod
-    def fit_sem_model(data):
+    def fit_sem_model(self, stmt, data):
+        with robjects.conversion.localconverter(robjects.default_converter + robjects.pandas2ri.converter):
+            rdata = robjects.conversion.py2rpy(data)
         start_time = time.time()
         try:
-            pandas2ri.activate()
-            robjects.r['fit_sem'](data)
-            pandas2ri.deactivate()
+            self.fit = self.base.do_call("sem", ListVector({'model': stmt, 'data': rdata}))
         except:
             print('Error in fit_sem_model function.')
             return {'is_fitted': False}
         end_time = time.time()
         return {'is_fitted': True, 'training_time': end_time - start_time}
 
-    @staticmethod
-    def evaluate_sem_model():
+    def evaluate_sem_model(self):
         try:
-            robjects.r['evaluate_sem']()
-            fit_measure_res = robjects.r['res']
+            fit_measure_res = self.base.do_call("fitMeasures", ListVector({'object': self.fit}))
         except:
             print('Error in evaluate_sem_model function.')
             return {'is_evaluated': False}
@@ -70,9 +54,11 @@ class SemModel:
 
 if __name__ == '__main__':
     sem = SemModel()
-    data = robjects.r('PoliticalDemocracy')
+    rData = robjects.r('PoliticalDemocracy')
 
-    build_res = sem.build_sem_model(CREATE_MODEL_STMT_EXAMPLE)
-    fit_res = sem.fit_sem_model(data)
+    with robjects.conversion.localconverter(robjects.default_converter + robjects.pandas2ri.converter):
+        data = robjects.conversion.rpy2py(rData)
+
+    fit_res = sem.fit_sem_model(CREATE_MODEL_STMT_EXAMPLE, data)
     fit_measure_res = sem.evaluate_sem_model()
     print(fit_measure_res)
