@@ -102,33 +102,38 @@ class DiagramScene(QtWidgets.QGraphicsScene):
     def mouseReleaseEvent(self, mouseEvent):
         if self.myMode in [self.InsertLine, self.InsertDoubleLine] and self.line:
             startItems = self.items(self.line.line().p1())
-            if len(startItems) and startItems[0] == self.line:
-                startItems.pop(0)
+            startItem = None
+            for item in startItems:
+                if isinstance(item, DiagramItem) :
+                    startItem = item
+                    break
+
             endItems = self.items(self.line.line().p2())
-            if len(endItems) and endItems[0] == self.line:
-                endItems.pop(0)
+            endItem = None
+            for item in endItems:
+                if isinstance(item, DiagramItem):
+                    endItem = item
+                    break
 
             self.removeItem(self.line)
             self.line = None
 
-            if len(startItems) and len(endItems) and isinstance(startItems[0], DiagramItem) and \
-                    isinstance(endItems[0], DiagramItem) and startItems[0] != endItems[0]:
-                startItem = startItems[0]
-                endItem = endItems[0]
+            if startItem == None or endItem == None or startItem == endItem:
+                return
 
-                if self.myMode == self.InsertLine:
-                    arrow = Arrow(startItem, endItem)
-                    self.AddDirectedEdge(startItem, endItem)
-                else:
-                    arrow = DoubleArrow(startItem, endItem)
-                    self.AddCovarianceEdge(startItem, endItem)
+            if self.myMode == self.InsertLine:
+                arrow = Arrow(startItem, endItem)
+                self.AddDirectedEdge(startItem, endItem)
+            else:
+                arrow = DoubleArrow(startItem, endItem)
+                self.AddCovarianceEdge(startItem, endItem)
 
-                arrow.setColor(self.myLineColor)
-                startItem.addArrow(arrow)
-                endItem.addArrow(arrow)
-                arrow.setZValue(-1000.0)
-                self.addItem(arrow)
-                arrow.update_position()
+            arrow.setColor(self.myLineColor)
+            startItem.addArrow(arrow)
+            endItem.addArrow(arrow)
+            arrow.setZValue(-1000.0)
+            self.addItem(arrow)
+            arrow.update_position()
 
         self.line = None
         super(DiagramScene, self).mouseReleaseEvent(mouseEvent)
@@ -145,7 +150,7 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         self.addItem(item)
         item.setPos(itemPosition)
         self.itemInserted.emit(item)
-        self.factorType[item] = self.myItemType
+        self.factorType[item] = itemType
         item_rename = ""
         if itemType == 1:
             item_rename = "x" + str(self.observed_cnt)
@@ -202,7 +207,7 @@ class DiagramScene(QtWidgets.QGraphicsScene):
                 startName = self.latent_dict[startItem]
                 endName = self.latent_dict[endItem]
             self.regressions_dict[startName].append(endName)
-    
+
     def AddCovarianceEdge(self, startItem, endItem):
         startName = ""
         endName = ""
@@ -462,15 +467,19 @@ class MainWindow(QtWidgets.QMainWindow):
         if fileDialog.exec() == QtWidgets.QFileDialog.Accepted :
             path = fileDialog.selectedFiles()[0]
 
-        excelFile = pd.read_excel(path)
+        self.data = pd.read_excel(path)
+        self.description = self.data.columns
+
+        columns = []
 
         xLabel = 2000
         yLabel = 2200
-        for column in excelFile.columns:
+        for column in self.data.columns:
             group = self.scene.createItemGroup(self.scene.selectedItems())
             group.setFlags(QtWidgets.QGraphicsItem.ItemIsMovable)
             item = self.scene.addFactor(1, QtCore.QPointF(xLabel, yLabel))
             group.addToGroup(item['item'])
+            columns.append(item['itemName'])
             textItem = self.scene.addTextItem('{}\n{}'.format(item['itemName'], column),
                                              QtCore.QPointF(xLabel - 50, yLabel - 50))
             group.addToGroup(textItem)
@@ -479,6 +488,8 @@ class MainWindow(QtWidgets.QMainWindow):
             if xLabel % 2000 == 0:
                 xLabel = 2000
                 yLabel += 300
+
+        self.data.columns = columns
 
     def createToolBox(self):
         self.buttonGroup = QtWidgets.QButtonGroup()
