@@ -1,9 +1,27 @@
 import numpy as np
+import pickle as pkl
 import autogluon as ag
 import matplotlib.pyplot as plt
 
-from SEM import SemModel
-from search_space import SearchSpace
+from frontend_python.output import GraphvizVisualization
+
+class RLScheduler(ag.scheduler.RLScheduler):
+    def __init__(self, train_fn, **kwargs):
+        super().__init__(train_fn, **kwargs)
+
+    def get_topk_config(self, k):
+        """Returns top k configurations found so far.
+        """
+        with self.LOCK:
+            if self.searcher.results:
+                topk_configs = list()
+                for config_pkl, reward in sorted(self.searcher.results.items(), key=lambda item: -item[1]):
+                    topk_configs.append(pkl.loads(config_pkl))
+                    if len(topk_configs) >= k:
+                        break
+                return topk_configs
+            else:
+                return list()
 
 
 class ModelSearcher:
@@ -17,12 +35,12 @@ class ModelSearcher:
             reward = model_evaluator.evaluate(model, data)
             reporter(reward=reward)
 
-        self.searcher = ag.scheduler.RLScheduler(evaluate_callback,
-                                                 resource={'num_cpus': 1, 'num_gpus': 0},
-                                                 num_trials=200,
-                                                 reward_attr='reward',
-                                                 controller_batch_size=4,
-                                                 controller_lr=5e-3, )
+        self.searcher = RLScheduler(evaluate_callback,
+                                    resource={'num_cpus': 1, 'num_gpus': 0},
+                                    num_trials=100,
+                                    reward_attr='reward',
+                                    controller_batch_size=4,
+                                    controller_lr=5e-3)
 
         self.evaluator = model_evaluator
         self.searchSpace = search_space
@@ -39,15 +57,24 @@ class ModelSearcher:
             print('Best config: {}, best reward: {}'.format(self.searcher.get_best_config(),
                                                             self.searcher.get_best_reward()))
 
-    def print_best_solution(self):
-        args = self.searcher.get_best_config()
+    def print_topk_solution(self, k, graphviz=False):
+        args = self.searcher.get_topk_config(k)
 
-        model = self.searchSpace.gluon2dict(args)
-        model_lavaan = self.evaluator.dict2lavaan(model)
-        print('The best model looks like:\n' + model_lavaan)
+        if graphviz:
+            models = [self.searchSpace.gluon2dict(arg) for arg in args]
+            vis = GraphvizVisualization(models)
+            vis.show()
+        else:
+            for rank, arg in enumerate(args):
+                model = self.searchSpace.gluon2dict(arg)
+                model_lavaan = self.evaluator.dict2lavaan(model)
+                print('The %dth good model looks like:\n%s' % (rank, model_lavaan))
 
-        reward = self.evaluator.evaluate(model, self.data)
-        print('The reward is: %f' % reward)
+                reward = self.evaluator.evaluate(model, self.data)
+                print('The reward is: %f' % reward)
+
+    def print_best_solution(self, graphviz=False):
+        self.print_topk_solution(1, graphviz)
 
     def plot_learning_curve(self):
         learning_curve = [v[0]['reward'] for v in self.searcher.training_history.values()]

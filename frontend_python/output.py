@@ -5,26 +5,76 @@ from PyQt5 import QtGui, QtWidgets
 
 
 class PaintPicture(QtWidgets.QDialog):
-    def __init__(self, model):
+    def __init__(self, models):
         super(PaintPicture, self).__init__()
 
-        self.model = model
+        self.models = models
+        self.current_id = 0
+        self.current_label = None
+        self.current_image = None
 
         layout = QtWidgets.QVBoxLayout()
-        self.img_btn = QtWidgets.QPushButton('Render')
-        self.img_btn.clicked.connect(self.graphvizRender)
-        layout.addWidget(self.img_btn)
+
+        self.nxt_btn = QtWidgets.QPushButton('Next')
+        self.nxt_btn.clicked.connect(self._next_model)
+        layout.addWidget(self.nxt_btn)
+
+        self.pre_btn = QtWidgets.QPushButton('Previous')
+        self.pre_btn.clicked.connect(self._previous_model)
+        layout.addWidget(self.pre_btn)
+
+        self.save_btn = QtWidgets.QPushButton('Save')
+        self.save_btn.clicked.connect(self._save_image)
+        layout.addWidget(self.save_btn)
 
         self.setLayout(layout)
         self.show()
 
-    def graphvizRender(self):
+        # Render the first model.
+        self._graphviz_render()
+        self._update_button_status()
+
+    def _next_model(self):
+        self.current_id += 1
+        self._graphviz_render()
+
+        self._update_button_status()
+
+    def _previous_model(self):
+        self.current_id -= 1
+        self._graphviz_render()
+
+        self._update_button_status()
+
+    def _update_button_status(self):
+        if self.current_id <= 0:
+            self.pre_btn.setEnabled(False)
+        else:
+            self.pre_btn.setEnabled(True)
+
+        if self.current_id >= len(self.models) - 1:
+            self.nxt_btn.setEnabled(False)
+        else:
+            self.nxt_btn.setEnabled(True)
+
+        if self.current_label:
+            self.save_btn.setEnabled(True)
+        else:
+            self.save_btn.setEnabled(False)
+
+    def _save_image(self):
+        name = QtWidgets.QFileDialog.getSaveFileName(self, 'Save File', directory='dsem_result', filter='*.png')
+        if name:
+            self.current_image.save(name[0], format='png')
+
+    def _graphviz_render(self):
         # Potential Engine Options = ['dot', 'neato', 'fdp']
         dot = Digraph(comment='Result from DSEM', engine='dot')
 
-        measurement_dict = self.model['measurement_dict']
-        regressions_dict = self.model['regressions_dict']
-        covariance_dict = self.model['covariance_dict']
+        model = self.models[self.current_id]
+        measurement_dict = model['measurement_dict']
+        regressions_dict = model['regressions_dict']
+        covariance_dict = model['covariance_dict']
 
         for latent in measurement_dict.keys():
             for observed in measurement_dict[latent]:
@@ -45,11 +95,26 @@ class PaintPicture(QtWidgets.QDialog):
 
         image = QtGui.QImage(full_path)
 
-        self.imageLabel = QtWidgets.QLabel()
-        self.imageLabel.setPixmap(QtGui.QPixmap.fromImage(image))
+        imageLabel = QtWidgets.QLabel()
+        imageLabel.setPixmap(QtGui.QPixmap.fromImage(image))
 
         layout = self.layout()
-        layout.addWidget(self.imageLabel)
+        if self.current_label:
+            layout.removeWidget(self.current_label)
+            self.current_label.deleteLater()
+        layout.addWidget(imageLabel)
+
+        self.current_label = imageLabel
+        self.current_image = image
+
+
+class GraphvizVisualization:
+    def __init__(self, models):
+        self.app = QtWidgets.QApplication(sys.argv)
+        self.windows = PaintPicture(models)
+
+    def show(self):
+        self.app.exec_()
 
 
 if __name__ == "__main__":
@@ -62,7 +127,7 @@ if __name__ == "__main__":
     }, 'covariance_dict': {
         'factor3': ['factor1']
     }}
+    models = [sample_model, sample_model, sample_model]
 
-    app = QtWidgets.QApplication(sys.argv)
-    widget = PaintPicture(sample_model)
-    sys.exit(app.exec_())
+    vis = GraphvizVisualization(models)
+    vis.show()
