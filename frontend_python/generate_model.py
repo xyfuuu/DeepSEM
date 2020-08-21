@@ -22,7 +22,7 @@ class generateModel():
     def addFactor(self, item, itemType):
         self.factorType[item] = itemType
         item_rename = ""
-        if itemType == 1:
+        if itemType == 0:
             item_rename = "x" + str(self.observed_cnt)
             self.observed_dict[item] = item_rename
             self.observed_list.append(item_rename)
@@ -41,7 +41,7 @@ class generateModel():
         startName = ""
         endName = ""
         if self.factorType[startItem] != self.factorType[endItem]:
-            if self.factorType[startItem] == 1:
+            if self.factorType[startItem] == 0:
                 startName = self.observed_dict[startItem]
                 endName = self.latent_dict[endItem]
             else:
@@ -49,7 +49,7 @@ class generateModel():
                 endName = self.latent_dict[startItem]
             self.measurement_dict[startName].append(endName)
         else:
-            if self.factorType[startItem] == 1:
+            if self.factorType[startItem] == 0:
                 startName = self.observed_dict[startItem]
                 endName = self.observed_dict[endItem]
             else:
@@ -60,15 +60,15 @@ class generateModel():
     def addCovarianceEdge(self, startItem, endItem):
         startName = ""
         endName = ""
-        if self.factorType[startItem] == 1:
+        if self.factorType[startItem] == 0:
             startName = self.observed_dict[startItem]
         else:
             startName = self.latent_dict[startItem]
-        if self.factorType[endItem] == 1:
+        if self.factorType[endItem] == 0:
             endName = self.observed_dict[endItem]
         else:
             endName = self.latent_dict[endItem]
-        if self.factorType[startItem] == 0 and self.factorType[endItem] == 1 :
+        if self.factorType[startItem] == 0 and self.factorType[endItem] == 0:
             temp = startName
             startName = endName
             endName = temp
@@ -76,7 +76,7 @@ class generateModel():
     
     def removeFactor(self, item):
         item_rename = ""
-        if self.factorType[item] == 1:
+        if self.factorType[item] == 0:
             item_rename = self.observed_dict.pop(item)
             self.observed_list.remove(item_rename)
         else:
@@ -103,16 +103,16 @@ class generateModel():
         endItem = item.end_item
         startName = ""
         endName = ""
-        if self.factorType[startItem] == 1:
+        if self.factorType[startItem] == 0:
             startName = self.observed_dict[startItem]
         else:
             startName = self.latent_dict[startItem]
-        if self.factorType[endItem] == 1:
+        if self.factorType[endItem] == 0:
             endName = self.observed_dict[endItem]
         else:
             endName = self.latent_dict[endItem]
         if self.factorType[startItem] != self.factorType[endItem]:
-            if self.factorType[startItem] != 1:
+            if self.factorType[startItem] == 1:
                 temp = startName
                 startName = endName
                 endName = startName

@@ -373,8 +373,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.buttonGroup.buttonClicked[int].connect(self.buttonGroupClicked)
 
         layout = QtWidgets.QGridLayout()
-        layout.addWidget(self.createCellWidget("Observed Variables", DiagramItem.Conditional), 0, 0)
-        layout.addWidget(self.createCellWidget("Latent Variables", DiagramItem.Step), 0, 1)
+        layout.addWidget(self.createCellWidget("Latnet Variables", DiagramItem.Conditional), 0, 0)
+        layout.addWidget(self.createCellWidget("Observed Variables", DiagramItem.Step), 0, 1)
 
         textButton = QtWidgets.QToolButton()
         textButton.setCheckable(True)
