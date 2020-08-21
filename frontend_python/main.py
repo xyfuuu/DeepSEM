@@ -5,6 +5,7 @@ from diagram_items import Arrow, DoubleArrow, DiagramTextItem, DiagramItem
 
 # pyrcc5 diagramscene.qrc -o diagramscene_rc.py
 import diagramscene_rc
+from output import GraphvizVisualization
 
 
 class DiagramScene(QtWidgets.QGraphicsScene):
@@ -17,7 +18,7 @@ class DiagramScene(QtWidgets.QGraphicsScene):
     latent_cnt = 0
     factorType = dict()
     measurement_dict = dict()
-    regression_dict = dict()
+    regressions_dict = dict()
     covariance_dict = dict()
 
     itemInserted = QtCore.pyqtSignal(DiagramItem)
@@ -166,7 +167,7 @@ class DiagramScene(QtWidgets.QGraphicsScene):
             self.latent_cnt = self.latent_cnt + 1
         self.covariance_dict[item_rename] = []
         self.measurement_dict[item_rename] = []
-        self.regression_dict[item_rename] = []
+        self.regressions_dict[item_rename] = []
             
     def AddDirectedEdge(self, startItem, endItem):
         startName = ""
@@ -186,7 +187,7 @@ class DiagramScene(QtWidgets.QGraphicsScene):
             else:
                 startName = self.latent_dict[startItem]
                 endName = self.latent_dict[endItem]
-            self.regression_dict[startName].append(endName)
+            self.regressions_dict[startName].append(endName)
     
     def AddCovarianceEdge(self, startItem, endItem):
         startName = ""
@@ -215,16 +216,16 @@ class DiagramScene(QtWidgets.QGraphicsScene):
             self.latent_list.remove(item_rename)
         if item_rename in self.measurement_dict:
             self.measurement_dict.pop(item_rename)
-        if item_rename in self.regression_dict:
-            self.regression_dict.pop(item_rename)
+        if item_rename in self.regressions_dict:
+            self.regressions_dict.pop(item_rename)
         if item_rename in self.covariance_dict:
             self.covariance_dict.pop(item_rename)
         for tmp in self.measurement_dict:
             if item_rename in self.measurement_dict[tmp]:
                 self.measurement_dict[tmp].pop(self.measurement_dict[tmp].index(item_rename))
-        for tmp in self.regression_dict:
-            if item_rename in self.regression_dict[tmp]:
-                self.regression_dict[tmp].pop(self.regression_dict[tmp].index(item_rename))
+        for tmp in self.regressions_dict:
+            if item_rename in self.regressions_dict[tmp]:
+                self.regressions_dict[tmp].pop(self.regressions_dict[tmp].index(item_rename))
         for tmp in self.covariance_dict:
             if item_rename in self.covariance_dict[tmp]:
                 self.covariance_dict[tmp].pop(self.covariance_dict[tmp].index(item_rename))
@@ -251,9 +252,9 @@ class DiagramScene(QtWidgets.QGraphicsScene):
             if startName in self.observed_dict:
                 if endName in self.observed_dict[startName]:
                     self.observed_dict[startName].pop(endName)
-            if startName in self.regression_dict:
-                if endName in self.regression_dict[startName]:
-                    self.regression_dict[startName].pop(endName)
+            if startName in self.regressions_dict:
+                if endName in self.regressions_dict[startName]:
+                    self.regressions_dict[startName].pop(endName)
         else:
             if startName in self.covariance_dict:
                 self.covariance_dict[startName].pop(endName)
@@ -262,7 +263,7 @@ class DiagramScene(QtWidgets.QGraphicsScene):
                 
     def Output(self):
         return {'measurement_dict':self.measurement_dict,
-                'regression_dict':self.regression_dict,
+                'regressions_dict':self.regressions_dict,
                 'covariance_dict':self.covariance_dict}
 
 
@@ -328,12 +329,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
     # Call the backend in this function.
     def doCalculation(self):
-        modelres = self.scene.Output()
-        print(modelres)
-        msg = QtWidgets.QMessageBox()
-        msg.setText("Please call backend in this function.")
-        msg.exec_()
-
+        model = self.scene.Output()
+        vis = GraphvizVisualization([model])
+        vis.show()
+        
     def deleteItem(self):
         print("begin remove")
         for item in self.scene.selectedItems():
