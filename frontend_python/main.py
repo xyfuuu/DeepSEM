@@ -1,11 +1,13 @@
 import sys
+import pandas as pd
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from diagram_items import Arrow, DoubleArrow, DiagramTextItem, DiagramItem
+from generate_model import generateModel
 
 # pyrcc5 diagramscene.qrc -o diagramscene_rc.py
 import diagramscene_rc
-
+from output import PaintPicture
 
 class DiagramScene(QtWidgets.QGraphicsScene):
     InsertItem, InsertLine, InsertDoubleLine, InsertText, MoveItem = range(5)
@@ -28,6 +30,8 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         self.myTextColor = QtCore.Qt.black
         self.myLineColor = QtCore.Qt.black
         self.myFont = QtGui.QFont()
+        
+        self.generateModel = generateModel()
 
     def setLineColor(self, color):
         self.myLineColor = color
@@ -68,27 +72,15 @@ class DiagramScene(QtWidgets.QGraphicsScene):
             return
 
         if self.myMode == self.InsertItem:
-            item = DiagramItem(self.myItemType, self.myItemMenu)
-            item.setBrush(self.myItemColor)
-            self.addItem(item)
-            item.setPos(mouseEvent.scenePos())
-            self.itemInserted.emit(item)
+            self.addFactor(self.myItemType, mouseEvent.scenePos())
         elif self.myMode in [self.InsertLine, self.InsertDoubleLine]:
             self.line = QtWidgets.QGraphicsLineItem(QtCore.QLineF(mouseEvent.scenePos(),
                                                                   mouseEvent.scenePos()))
+
             self.line.setPen(QtGui.QPen(self.myLineColor, 2))
             self.addItem(self.line)
         elif self.myMode == self.InsertText:
-            textItem = DiagramTextItem()
-            textItem.setFont(self.myFont)
-            textItem.setTextInteractionFlags(QtCore.Qt.TextEditorInteraction)
-            textItem.setZValue(1000.0)
-            textItem.lostFocus.connect(self.editorLostFocus)
-            textItem.selectedChange.connect(self.itemSelected)
-            self.addItem(textItem)
-            textItem.setDefaultTextColor(self.myTextColor)
-            textItem.setPos(mouseEvent.scenePos())
-            self.textInserted.emit(textItem)
+            self.addTextItem('', mouseEvent.scenePos())
 
         super(DiagramScene, self).mousePressEvent(mouseEvent)
 
@@ -102,31 +94,38 @@ class DiagramScene(QtWidgets.QGraphicsScene):
     def mouseReleaseEvent(self, mouseEvent):
         if self.myMode in [self.InsertLine, self.InsertDoubleLine] and self.line:
             startItems = self.items(self.line.line().p1())
-            if len(startItems) and startItems[0] == self.line:
-                startItems.pop(0)
+            startItem = None
+            for item in startItems:
+                if isinstance(item, DiagramItem) :
+                    startItem = item
+                    break
+
             endItems = self.items(self.line.line().p2())
-            if len(endItems) and endItems[0] == self.line:
-                endItems.pop(0)
+            endItem = None
+            for item in endItems:
+                if isinstance(item, DiagramItem):
+                    endItem = item
+                    break
 
             self.removeItem(self.line)
             self.line = None
 
-            if len(startItems) and len(endItems) and isinstance(startItems[0], DiagramItem) and \
-                    isinstance(endItems[0], DiagramItem) and startItems[0] != endItems[0]:
-                startItem = startItems[0]
-                endItem = endItems[0]
+            if startItem == None or endItem == None or startItem == endItem:
+                return
 
-                if self.myMode == self.InsertLine:
-                    arrow = Arrow(startItem, endItem)
-                else:
-                    arrow = DoubleArrow(startItem, endItem)
+            if self.myMode == self.InsertLine:
+                arrow = Arrow(startItem, endItem)
+                self.generateModel.addDirectedEdge(startItem, endItem)
+            else:
+                arrow = DoubleArrow(startItem, endItem)
+                self.generateModel.addCovarianceEdge(startItem, endItem)
 
-                arrow.setColor(self.myLineColor)
-                startItem.addArrow(arrow)
-                endItem.addArrow(arrow)
-                arrow.setZValue(-1000.0)
-                self.addItem(arrow)
-                arrow.update_position()
+            arrow.setColor(self.myLineColor)
+            startItem.addArrow(arrow)
+            endItem.addArrow(arrow)
+            arrow.setZValue(-1000.0)
+            self.addItem(arrow)
+            arrow.update_position()
 
         self.line = None
         super(DiagramScene, self).mouseReleaseEvent(mouseEvent)
@@ -136,6 +135,35 @@ class DiagramScene(QtWidgets.QGraphicsScene):
             if isinstance(item, type):
                 return True
         return False
+        
+    def addFactor(self, itemType, itemPosition):
+        item = DiagramItem(itemType, self.myItemMenu)
+        item.setBrush(self.myItemColor)
+        self.addItem(item)
+        item.setPos(itemPosition)
+        self.itemInserted.emit(item)
+        return self.generateModel.addFactor(item, itemType)
+
+    def addTextItem(self, textContent, itemPosition):
+        textItem = DiagramTextItem()
+        textItem.setTextWidth(100)
+        textItem.setPlainText(textContent)
+        textItem.setFont(self.myFont)
+        textItem.setTextInteractionFlags(QtCore.Qt.TextEditorInteraction)
+        textItem.setZValue(1000.0)
+        textItem.lostFocus.connect(self.editorLostFocus)
+        textItem.selectedChange.connect(self.itemSelected)
+        self.addItem(textItem)
+        textItem.setDefaultTextColor(self.myTextColor)
+        textItem.setPos(itemPosition)
+        format = QtGui.QTextBlockFormat()
+        format.setAlignment(QtCore.Qt.AlignCenter)
+        cursor = QtGui.QTextCursor()
+        cursor.select(QtGui.QTextCursor.Document)
+        cursor.mergeBlockFormat(format)
+        cursor.clearSelection()
+        textItem.setTextCursor(cursor)
+        return textItem
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -200,16 +228,18 @@ class MainWindow(QtWidgets.QMainWindow):
 
     # Call the backend in this function.
     def doCalculation(self):
-        msg = QtWidgets.QMessageBox()
-        msg.setText("Please call backend in this function.")
-        msg.exec_()
-
+        model = self.scene.generateModel.outputModel()
+        self.result_windows = PaintPicture([model])
+        
     def deleteItem(self):
         for item in self.scene.selectedItems():
             if isinstance(item, DiagramItem):
                 item.removeArrows()
+                self.scene.generateModel.removeFactor(item)
+            else:
+                self.scene.generateModel.removeRelation(item)
             self.scene.removeItem(item)
-
+            
     def pointerGroupClicked(self, i):
         self.scene.setMode(self.pointerTypeGroup.checkedId())
 
@@ -302,14 +332,49 @@ class MainWindow(QtWidgets.QMainWindow):
         QtWidgets.QMessageBox.about(self, "About Diagram Scene",
                                     "The <b>Diagram Scene</b> example shows use of the graphics framework.")
 
+
+    def updateData(self):
+        fileDialog = QtWidgets.QFileDialog()
+        fileDialog.setWindowTitle('Select Data Source')
+        fileDialog.setFileMode(QtWidgets.QFileDialog.AnyFile)
+        fileDialog.setViewMode(QtWidgets.QFileDialog.Detail)
+        fileDialog.setDirectory('.')
+
+        if fileDialog.exec() == QtWidgets.QFileDialog.Accepted :
+            path = fileDialog.selectedFiles()[0]
+
+        self.data = pd.read_excel(path)
+        self.description = self.data.columns
+
+        columns = []
+
+        xLabel = 2000
+        yLabel = 2200
+        for column in self.data.columns:
+            group = self.scene.createItemGroup(self.scene.selectedItems())
+            group.setFlags(QtWidgets.QGraphicsItem.ItemIsMovable)
+            item = self.scene.addFactor(1, QtCore.QPointF(xLabel, yLabel))
+            group.addToGroup(item['item'])
+            columns.append(item['itemName'])
+            textItem = self.scene.addTextItem('{}\n{}'.format(item['itemName'], column),
+                                             QtCore.QPointF(xLabel - 50, yLabel - 50))
+            group.addToGroup(textItem)
+
+            xLabel = xLabel + 200
+            if xLabel % 2000 == 0:
+                xLabel = 2000
+                yLabel += 300
+
+        self.data.columns = columns
+
     def createToolBox(self):
         self.buttonGroup = QtWidgets.QButtonGroup()
         self.buttonGroup.setExclusive(False)
         self.buttonGroup.buttonClicked[int].connect(self.buttonGroupClicked)
 
         layout = QtWidgets.QGridLayout()
-        layout.addWidget(self.createCellWidget("Observed Variables", DiagramItem.Conditional), 0, 0)
-        layout.addWidget(self.createCellWidget("Latent Variables", DiagramItem.Step), 0, 1)
+        layout.addWidget(self.createCellWidget("Latnet Variables", DiagramItem.Conditional), 0, 0)
+        layout.addWidget(self.createCellWidget("Observed Variables", DiagramItem.Step), 0, 1)
 
         textButton = QtWidgets.QToolButton()
         textButton.setCheckable(True)
@@ -384,8 +449,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.aboutAction = QtWidgets.QAction("A&bout", self, shortcut="Ctrl+B",
                                              triggered=self.about)
 
+        self.updateDataAction = QtWidgets.QAction("Update &Data", self, shortcut="Ctrl+U",
+                                             triggered=self.updateData)
+
     def createMenus(self):
         self.fileMenu = self.menuBar().addMenu("&File")
+        self.fileMenu.addAction(self.updateDataAction)
         self.fileMenu.addAction(self.exitAction)
 
         self.itemMenu = self.menuBar().addMenu("&Item")
