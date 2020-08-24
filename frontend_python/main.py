@@ -237,7 +237,7 @@ class MainWindow(QtWidgets.QMainWindow):
             if isinstance(item, DiagramItem):
                 item.removeArrows()
                 self.scene.generateModel.removeFactor(item)
-            else:
+            elif isinstance(item, Arrow) or isinstance(item, DoubleArrow):
                 self.scene.generateModel.removeRelation(item)
             self.scene.removeItem(item)
 
@@ -352,7 +352,8 @@ class MainWindow(QtWidgets.QMainWindow):
         yLabel = 2200
         for column in self.data.columns:
             group = self.scene.createItemGroup(self.scene.selectedItems())
-            group.setFlags(QtWidgets.QGraphicsItem.ItemIsMovable)
+            group.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
+            group.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, True)
             item = self.scene.addFactor(1, QtCore.QPointF(xLabel, yLabel))
             group.addToGroup(item['item'])
             columns.append(item['itemName'])

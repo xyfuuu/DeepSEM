@@ -1,6 +1,3 @@
-import math
-from PyQt5 import QtCore, QtGui, QtWidgets
-
 from diagram_items import Arrow, DoubleArrow, DiagramTextItem, DiagramItem
 
 
@@ -115,7 +112,7 @@ class generateModel():
             if self.factorType[startItem] == 1:
                 temp = startName
                 startName = endName
-                endName = startName
+                endName = temp
         if isinstance(item, Arrow):
             if startName in self.observed_dict:
                 if endName in self.observed_dict[startName]:
