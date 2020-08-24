@@ -42,13 +42,13 @@ class Arrow(QtWidgets.QGraphicsLineItem):
 
     @staticmethod
     def _getIntersectPoint(myStartItem, myEndItem):
-        centerLine = QtCore.QLineF(myStartItem.pos(), myEndItem.pos())
+        centerLine = QtCore.QLineF(myStartItem.scenePos(), myEndItem.scenePos())
         endPolygon = myEndItem.polygon()
-        p1 = endPolygon.first() + myEndItem.pos()
+        p1 = endPolygon.first() + myEndItem.scenePos()
 
         intersectPoint = QtCore.QPointF()
         for i in endPolygon:
-            p2 = i + myEndItem.pos()
+            p2 = i + myEndItem.scenePos()
             polyLine = QtCore.QLineF(p1, p2)
             intersectType = polyLine.intersect(centerLine, intersectPoint)
             if intersectType == QtCore.QLineF.BoundedIntersection:
@@ -72,7 +72,7 @@ class Arrow(QtWidgets.QGraphicsLineItem):
 
         intersectPoint = Arrow._getIntersectPoint(myStartItem, myEndItem)
 
-        self.setLine(QtCore.QLineF(intersectPoint, myStartItem.pos()))
+        self.setLine(QtCore.QLineF(intersectPoint, myStartItem.scenePos()))
         line = self.line()
 
         angle = math.acos(line.dx() / line.length())

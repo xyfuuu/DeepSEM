@@ -3,8 +3,8 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 from diagram_items import Arrow, DoubleArrow, DiagramTextItem, DiagramItem
 
-class generateModel():
 
+class generateModel():
     observed_list = list()
     observed_dict = dict()
     observed_cnt = 0
@@ -15,10 +15,10 @@ class generateModel():
     measurement_dict = dict()
     regressions_dict = dict()
     covariance_dict = dict()
-    
+
     def __init__(self):
         super(generateModel, self).__init__()
-    
+
     def addFactor(self, item, itemType):
         self.factorType[item] = itemType
         item_rename = ""
@@ -73,7 +73,7 @@ class generateModel():
             startName = endName
             endName = temp
         self.covariance_dict[startName].append(endName)
-    
+
     def removeFactor(self, item):
         item_rename = ""
         if self.factorType[item] == 0:
@@ -97,7 +97,7 @@ class generateModel():
         for tmp in self.covariance_dict:
             if item_rename in self.covariance_dict[tmp]:
                 self.covariance_dict[tmp].pop(self.covariance_dict[tmp].index(item_rename))
-    
+
     def removeRelation(self, item):
         startItem = item.start_item
         endItem = item.end_item
@@ -128,8 +128,8 @@ class generateModel():
                 self.covariance_dict[startName].pop(endName)
             else:
                 self.covariance_dict[endName].pop(startName)
-                
+
     def outputModel(self):
-        return {'measurement_dict':self.measurement_dict,
-                'regressions_dict':self.regressions_dict,
-                'covariance_dict':self.covariance_dict}
+        return {'measurement_dict': self.measurement_dict,
+                'regressions_dict': self.regressions_dict,
+                'covariance_dict': self.covariance_dict}
