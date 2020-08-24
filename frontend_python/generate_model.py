@@ -80,20 +80,20 @@ class generateModel():
             item_rename = self.latent_dict.pop(item)
             self.latent_list.remove(item_rename)
         if item_rename in self.measurement_dict:
-            self.measurement_dict.pop(item_rename)
+            self.measurement_dict.remove(item_rename)
         if item_rename in self.regressions_dict:
-            self.regressions_dict.pop(item_rename)
+            self.regressions_dict.remove(item_rename)
         if item_rename in self.covariance_dict:
-            self.covariance_dict.pop(item_rename)
+            self.covariance_dict.remove(item_rename)
         for tmp in self.measurement_dict:
             if item_rename in self.measurement_dict[tmp]:
-                self.measurement_dict[tmp].pop(self.measurement_dict[tmp].index(item_rename))
+                self.measurement_dict[tmp].remove(item_rename)
         for tmp in self.regressions_dict:
             if item_rename in self.regressions_dict[tmp]:
-                self.regressions_dict[tmp].pop(self.regressions_dict[tmp].index(item_rename))
+                self.regressions_dict[tmp].remove(item_rename)
         for tmp in self.covariance_dict:
             if item_rename in self.covariance_dict[tmp]:
-                self.covariance_dict[tmp].pop(self.covariance_dict[tmp].index(item_rename))
+                self.covariance_dict[tmp].remove(item_rename)
 
     def removeRelation(self, item):
         startItem = item.start_item()
@@ -116,15 +116,15 @@ class generateModel():
         if isinstance(item, Arrow):
             if startName in self.observed_dict:
                 if endName in self.observed_dict[startName]:
-                    self.observed_dict[startName].pop(endName)
+                    self.observed_dict[startName].remove(endName)
             if startName in self.regressions_dict:
                 if endName in self.regressions_dict[startName]:
-                    self.regressions_dict[startName].pop(endName)
+                    self.regressions_dict[startName].remove(endName)
         else:
             if startName in self.covariance_dict:
-                self.covariance_dict[startName].pop(endName)
+                self.covariance_dict[startName].remove(endName)
             else:
-                self.covariance_dict[endName].pop(startName)
+                self.covariance_dict[endName].remove(startName)
 
     def outputModel(self):
         return {'measurement_dict': self.measurement_dict,
