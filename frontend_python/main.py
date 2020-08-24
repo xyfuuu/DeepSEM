@@ -4,10 +4,11 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 from diagram_items import Arrow, DoubleArrow, DiagramTextItem, DiagramItem
 from generate_model import generateModel
+from output import PaintPicture
 
 # pyrcc5 diagramscene.qrc -o diagramscene_rc.py
 import diagramscene_rc
-from output import PaintPicture
+
 
 class DiagramScene(QtWidgets.QGraphicsScene):
     InsertItem, InsertLine, InsertDoubleLine, InsertText, MoveItem = range(5)
@@ -30,7 +31,7 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         self.myTextColor = QtCore.Qt.black
         self.myLineColor = QtCore.Qt.black
         self.myFont = QtGui.QFont()
-        
+
         self.generateModel = generateModel()
 
     def setLineColor(self, color):
@@ -96,7 +97,7 @@ class DiagramScene(QtWidgets.QGraphicsScene):
             startItems = self.items(self.line.line().p1())
             startItem = None
             for item in startItems:
-                if isinstance(item, DiagramItem) :
+                if isinstance(item, DiagramItem):
                     startItem = item
                     break
 
@@ -135,7 +136,7 @@ class DiagramScene(QtWidgets.QGraphicsScene):
             if isinstance(item, type):
                 return True
         return False
-        
+
     def addFactor(self, itemType, itemPosition):
         item = DiagramItem(itemType, self.myItemMenu)
         item.setBrush(self.myItemColor)
@@ -230,16 +231,16 @@ class MainWindow(QtWidgets.QMainWindow):
     def doCalculation(self):
         model = self.scene.generateModel.outputModel()
         self.result_windows = PaintPicture([model])
-        
+
     def deleteItem(self):
         for item in self.scene.selectedItems():
             if isinstance(item, DiagramItem):
                 item.removeArrows()
                 self.scene.generateModel.removeFactor(item)
-            else:
+            elif isinstance(item, Arrow) or isinstance(item, DoubleArrow):
                 self.scene.generateModel.removeRelation(item)
             self.scene.removeItem(item)
-            
+
     def pointerGroupClicked(self, i):
         self.scene.setMode(self.pointerTypeGroup.checkedId())
 
@@ -332,7 +333,6 @@ class MainWindow(QtWidgets.QMainWindow):
         QtWidgets.QMessageBox.about(self, "About Diagram Scene",
                                     "The <b>Diagram Scene</b> example shows use of the graphics framework.")
 
-
     def updateData(self):
         fileDialog = QtWidgets.QFileDialog()
         fileDialog.setWindowTitle('Select Data Source')
@@ -340,7 +340,7 @@ class MainWindow(QtWidgets.QMainWindow):
         fileDialog.setViewMode(QtWidgets.QFileDialog.Detail)
         fileDialog.setDirectory('.')
 
-        if fileDialog.exec() == QtWidgets.QFileDialog.Accepted :
+        if fileDialog.exec() == QtWidgets.QFileDialog.Accepted:
             path = fileDialog.selectedFiles()[0]
 
         self.data = pd.read_excel(path)
@@ -352,12 +352,13 @@ class MainWindow(QtWidgets.QMainWindow):
         yLabel = 2200
         for column in self.data.columns:
             group = self.scene.createItemGroup(self.scene.selectedItems())
-            group.setFlags(QtWidgets.QGraphicsItem.ItemIsMovable)
+            group.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
+            group.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, True)
             item = self.scene.addFactor(1, QtCore.QPointF(xLabel, yLabel))
             group.addToGroup(item['item'])
             columns.append(item['itemName'])
             textItem = self.scene.addTextItem('{}\n{}'.format(item['itemName'], column),
-                                             QtCore.QPointF(xLabel - 50, yLabel - 50))
+                                              QtCore.QPointF(xLabel - 50, yLabel - 50))
             group.addToGroup(textItem)
 
             xLabel = xLabel + 200
@@ -450,7 +451,7 @@ class MainWindow(QtWidgets.QMainWindow):
                                              triggered=self.about)
 
         self.updateDataAction = QtWidgets.QAction("Update &Data", self, shortcut="Ctrl+U",
-                                             triggered=self.updateData)
+                                                  triggered=self.updateData)
 
     def createMenus(self):
         self.fileMenu = self.menuBar().addMenu("&File")
