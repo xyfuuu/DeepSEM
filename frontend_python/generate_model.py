@@ -96,8 +96,8 @@ class generateModel():
                 self.covariance_dict[tmp].pop(self.covariance_dict[tmp].index(item_rename))
 
     def removeRelation(self, item):
-        startItem = item.start_item
-        endItem = item.end_item
+        startItem = item.start_item()
+        endItem = item.end_item()
         startName = ""
         endName = ""
         if self.factorType[startItem] == 0:
