@@ -169,6 +169,7 @@ class DiagramScene(QtWidgets.QGraphicsScene):
 
 class MainWindow(QtWidgets.QMainWindow):
     InsertTextButton = 10
+    group_item = dict()
 
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -234,9 +235,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def deleteItem(self):
         for item in self.scene.selectedItems():
-            if isinstance(item, DiagramItem):
-                item.removeArrows()
-                self.scene.generateModel.removeFactor(item)
+            diagram_item = item
+            if isinstance(item, QtWidgets.QGraphicsItemGroup):
+                diagram_item = self.group_item[item]
+            if isinstance(diagram_item, DiagramItem):
+                diagram_item.removeArrows()
+                self.scene.generateModel.removeFactor(diagram_item)
             elif isinstance(item, Arrow) or isinstance(item, DoubleArrow):
                 self.scene.generateModel.removeRelation(item)
             self.scene.removeItem(item)
@@ -360,6 +364,7 @@ class MainWindow(QtWidgets.QMainWindow):
             textItem = self.scene.addTextItem('{}\n{}'.format(item['itemName'], column),
                                               QtCore.QPointF(xLabel - 50, yLabel - 50))
             group.addToGroup(textItem)
+            self.group_item[group] = item['item']
 
             xLabel = xLabel + 200
             if xLabel % 2000 == 0:
