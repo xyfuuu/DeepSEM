@@ -80,11 +80,11 @@ class generateModel():
             item_rename = self.latent_dict.pop(item)
             self.latent_list.remove(item_rename)
         if item_rename in self.measurement_dict:
-            self.measurement_dict.remove(item_rename)
+            self.measurement_dict.pop(item_rename)
         if item_rename in self.regressions_dict:
-            self.regressions_dict.remove(item_rename)
+            self.regressions_dict.pop(item_rename)
         if item_rename in self.covariance_dict:
-            self.covariance_dict.remove(item_rename)
+            self.covariance_dict.pop(item_rename)
         for tmp in self.measurement_dict:
             if item_rename in self.measurement_dict[tmp]:
                 self.measurement_dict[tmp].remove(item_rename)
