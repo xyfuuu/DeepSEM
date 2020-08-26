@@ -30,6 +30,9 @@ class SearchSpace:
     # This function convert a model sampled from the search space in AutoGluon format to lavaan format.
     # This function is useful when you wanna evaluated the sampled model using the conventional SEM method.
     def gluon2dict(self, args):
+        if 'measurement_dict' in args.keys():
+            return args
+
         measurement_dict = {fac: [] for fac in self.factorNames}
         regressions_dict = {fac: [] for fac in self.factorNames}
         covariance_dict = {fac: [] for fac in self.factorNames}
@@ -43,6 +46,7 @@ class SearchSpace:
             if var[0] != '(':  # measurement
                 # This if is added because the special format of get_best_config() in AutoGlugon.
                 if isinstance(choice, int):
+                    print(self.factorNames, choice)
                     measurement_dict[self.factorNames[choice]].append(var)
                 else:
                     measurement_dict[choice].append(var)

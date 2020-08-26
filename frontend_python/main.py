@@ -4,10 +4,15 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 from diagram_items import Arrow, DoubleArrow, DiagramTextItem, DiagramItem
 from generate_model import generateModel
-from output import PaintPicture
 
 # pyrcc5 diagramscene.qrc -o diagramscene_rc.py
 import diagramscene_rc
+
+import sys
+sys.path.insert(0, '..')
+from search_space import SearchSpace
+from model_evaluation import ModelEvaluator
+from search_strategy import ModelSearcher
 
 
 class DiagramScene(QtWidgets.QGraphicsScene):
@@ -166,6 +171,12 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         textItem.setTextCursor(cursor)
         return textItem
 
+    def fetch_factors(self):
+        return self.generateModel.latent_list
+
+    def fetch_variables(self):
+        return self.generateModel.observed_list
+
 
 class MainWindow(QtWidgets.QMainWindow):
     InsertTextButton = 10
@@ -230,7 +241,18 @@ class MainWindow(QtWidgets.QMainWindow):
     # Call the backend in this function.
     def doCalculation(self):
         model = self.scene.generateModel.outputModel()
-        self.result_windows = PaintPicture([model])
+        variableNames = self.scene.fetch_variables()
+        variableDescription = {var: des for var, des in zip(variableNames, self.description)}
+        factorNames = self.scene.fetch_factors()
+
+        search_space = SearchSpace(factorNames, variableNames)
+        model_evaluator = ModelEvaluator(variableDescription)
+
+        rl_searcher = ModelSearcher(search_space, model_evaluator, self.data, model)
+
+        rl_searcher.search(verbose=True)
+
+        rl_searcher.print_topk_solution(10, graphviz=True)
 
     def deleteItem(self):
         for item in self.scene.selectedItems():
