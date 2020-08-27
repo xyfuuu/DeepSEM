@@ -157,31 +157,50 @@ class DoubleArrow(Arrow):
 
 
 class DiagramTextItem(QtWidgets.QGraphicsTextItem):
-    lostFocus = QtCore.pyqtSignal(QtWidgets.QGraphicsTextItem)
-
-    selectedChange = QtCore.pyqtSignal(QtWidgets.QGraphicsItem)
 
     def __init__(self, parent=None, scene=None):
         super(DiagramTextItem, self).__init__(parent, scene)
 
+        self.relatedItem = None
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIsFocusable)
 
     def itemChange(self, change, value):
-        if change == QtWidgets.QGraphicsItem.ItemSelectedChange:
-            self.selectedChange.emit(self)
+        if change == QtWidgets.QGraphicsItem.ItemPositionChange:
+            if self.relatedItem != None:
+                self.relatedItem.setPos(QtCore.QPointF(self.scenePos().x() + 50, self.scenePos().y() + 50))
         return value
 
-    def focusOutEvent(self, event):
-        self.setTextInteractionFlags(QtCore.Qt.NoTextInteraction)
-        self.lostFocus.emit(self)
-        super(DiagramTextItem, self).focusOutEvent(event)
+    def mousePressEvent(self, event):
+        self.setSelected(True)
+        super(DiagramTextItem, self).mousePressEvent(event)
 
+    def focusOutEvent(self, event):
+        cursor = self.textCursor()
+        cursor.clearSelection()
+        self.setTextCursor(cursor)
+        self.setTextInteractionFlags(QtCore.Qt.NoTextInteraction)
+        super(DiagramTextItem, self).focusOutEvent(event)
+        
+    def mouseMoveEvent(self, event):
+        if self.relatedItem != None:
+            self.relatedItem.setPos(QtCore.QPointF(self.scenePos().x() + 50, self.scenePos().y() + 50))
+        super(DiagramTextItem, self).mouseMoveEvent(event)
+    
     def mouseDoubleClickEvent(self, event):
-        if self.textInteractionFlags() == QtCore.Qt.NoTextInteraction:
-            self.setTextInteractionFlags(QtCore.Qt.TextEditorInteraction)
+        self.setEditable()
         super(DiagramTextItem, self).mouseDoubleClickEvent(event)
 
+    def setEditable(self):
+        self.setTextInteractionFlags(QtCore.Qt.TextEditable)
+        self.setTextInteractionFlags(QtCore.Qt.TextEditorInteraction)
+        self.setPlainText(self.toPlainText())
+        self.setSelected(True)
+        self.setFocus()
+
+    def keyPressEvent(self, event: QtGui.QKeyEvent):
+        super(DiagramTextItem, self).keyPressEvent(event)
 
 class DiagramItem(QtWidgets.QGraphicsPolygonItem):
     Step, Conditional, StartEnd, Io = range(4)
@@ -193,6 +212,8 @@ class DiagramItem(QtWidgets.QGraphicsPolygonItem):
 
         self.diagramType = diagramType
         self.contextMenu = contextMenu
+
+        self.relatedTextItem = None
 
         path = QtGui.QPainterPath()
         if self.diagramType == self.StartEnd:
@@ -252,9 +273,21 @@ class DiagramItem(QtWidgets.QGraphicsPolygonItem):
         self.setSelected(True)
         self.contextMenu.exec_(event.screenPos())
 
+    def focusOutEvent(self, event):
+        self.setSelected(False)
+        super(DiagramItem, self).focusOutEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if self.relatedTextItem != None:
+            self.relatedTextItem.setPos(QtCore.QPointF(self.scenePos().x() - 50, self.scenePos().y() - 50))
+        super(DiagramItem, self).mouseMoveEvent(event)
+
     def itemChange(self, change, value):
         if change == QtWidgets.QGraphicsItem.ItemPositionChange:
             for arrow in self.arrows:
                 arrow.update_position()
-
         return value
+
+    def mouseDoubleClickEvent(self, event):
+        if self.relatedTextItem != None:
+            self.relatedTextItem.mouseDoubleClickEvent(event)
