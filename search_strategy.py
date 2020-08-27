@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 
 from frontend_python.output import GraphvizVisualization
 
+
 class RLScheduler(ag.scheduler.RLScheduler):
     def __init__(self, train_fn, **kwargs):
         super().__init__(train_fn, **kwargs)
@@ -26,7 +27,7 @@ class RLScheduler(ag.scheduler.RLScheduler):
 
 class ModelSearcher:
 
-    def __init__(self, search_space, model_evaluator, data):
+    def __init__(self, search_space, model_evaluator, data, args=None):
         space = search_space.fetch()
 
         @ag.args(**space)
@@ -36,11 +37,12 @@ class ModelSearcher:
             reporter(reward=reward)
 
         self.searcher = RLScheduler(evaluate_callback,
+                                    args=args,
                                     resource={'num_cpus': 1, 'num_gpus': 0},
                                     num_trials=500,
                                     reward_attr='reward',
-                                    controller_batch_size=4,
-                                    controller_lr=5e-3)
+                                    controller_batch_size=5,
+                                    controller_lr=1e-3)
 
         self.evaluator = model_evaluator
         self.searchSpace = search_space

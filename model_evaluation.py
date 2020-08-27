@@ -82,7 +82,7 @@ class ModelEvaluator:
     def evaluate(self, model, data):
         # This is based on the prior knowledge from SEM
         for _, variables in model['measurement_dict'].items():
-            if len(variables) < 3:
+            if len(variables) < 2:
                 return 0
 
         sem_indexes = ModelEvaluator._evaluate_with_sem(model, data)
@@ -94,7 +94,7 @@ class ModelEvaluator:
         rmsea = sem_indexes['rmsea']
         nlp_reward = self._calculate_nlp_distance(model)
 
-        index = agfi - rmsea * 10 + nlp_reward / 3
+        index = agfi - rmsea * 10 + nlp_reward / 2
         index = 1 / (1 + np.exp(-index))
 
         return index

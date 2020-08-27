@@ -4,10 +4,15 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 from diagram_items import Arrow, DoubleArrow, DiagramTextItem, DiagramItem
 from generate_model import generateModel
-from output import PaintPicture
 
 # pyrcc5 diagramscene.qrc -o diagramscene_rc.py
 import diagramscene_rc
+
+import sys
+sys.path.insert(0, '..')
+from search_space import SearchSpace
+from model_evaluation import ModelEvaluator
+from search_strategy import ModelSearcher
 
 
 class DiagramScene(QtWidgets.QGraphicsScene):
@@ -80,8 +85,6 @@ class DiagramScene(QtWidgets.QGraphicsScene):
 
             self.line.setPen(QtGui.QPen(self.myLineColor, 2))
             self.addItem(self.line)
-        elif self.myMode == self.InsertText:
-            self.addTextItem('', mouseEvent.scenePos())
 
         super(DiagramScene, self).mousePressEvent(mouseEvent)
 
@@ -90,6 +93,8 @@ class DiagramScene(QtWidgets.QGraphicsScene):
             newLine = QtCore.QLineF(self.line.line().p1(), mouseEvent.scenePos())
             self.line.setLine(newLine)
         elif self.myMode == self.MoveItem:
+            for item in self.selectedItems():
+                item.mouseMoveEvent(mouseEvent)
             super(DiagramScene, self).mouseMoveEvent(mouseEvent)
 
     def mouseReleaseEvent(self, mouseEvent):
@@ -152,8 +157,6 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         textItem.setFont(self.myFont)
         textItem.setTextInteractionFlags(QtCore.Qt.TextEditorInteraction)
         textItem.setZValue(1000.0)
-        textItem.lostFocus.connect(self.editorLostFocus)
-        textItem.selectedChange.connect(self.itemSelected)
         self.addItem(textItem)
         textItem.setDefaultTextColor(self.myTextColor)
         textItem.setPos(itemPosition)
@@ -166,10 +169,15 @@ class DiagramScene(QtWidgets.QGraphicsScene):
         textItem.setTextCursor(cursor)
         return textItem
 
+    def fetch_factors(self):
+        return self.generateModel.latent_list
+
+    def fetch_variables(self):
+        return self.generateModel.observed_list
+
 
 class MainWindow(QtWidgets.QMainWindow):
     InsertTextButton = 10
-    group_item = dict()
 
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -223,7 +231,20 @@ class MainWindow(QtWidgets.QMainWindow):
                 button.setChecked(False)
 
         if id == self.InsertTextButton:
-            self.scene.setMode(DiagramScene.InsertText)
+            for item in self.scene.selectedItems():
+                if isinstance(item, DiagramItem) and item.relatedTextItem == None:
+                    itemType = self.scene.generateModel.factorType[item]
+                    itemName = ''
+                    if itemType == 0:
+                        itemName = self.scene.generateModel.observed_dict[item]
+                    else:
+                        itemName = self.scene.generateModel.latent_dict[item]
+                    textItem = self.scene.addTextItem(itemName, QtCore.QPointF(item.pos().x() - 50, item.pos().y()- 50))
+                    item.relatedTextItem = textItem
+                    textItem.relatedItem = item
+                    item.setSelected(False)
+                    textItem.setSelected(False)
+                    self.scene.addItem(textItem)
         else:
             self.scene.setItemType(id)
             self.scene.setMode(DiagramScene.InsertItem)
@@ -231,18 +252,31 @@ class MainWindow(QtWidgets.QMainWindow):
     # Call the backend in this function.
     def doCalculation(self):
         model = self.scene.generateModel.outputModel()
-        self.result_windows = PaintPicture([model])
+        variableNames = self.scene.fetch_variables()
+        variableDescription = {var: des for var, des in zip(variableNames, self.description)}
+        factorNames = self.scene.fetch_factors()
+
+        search_space = SearchSpace(factorNames, variableNames)
+        model_evaluator = ModelEvaluator(variableDescription)
+
+        rl_searcher = ModelSearcher(search_space, model_evaluator, self.data, model)
+
+        rl_searcher.search(verbose=True)
+
+        rl_searcher.print_topk_solution(10, graphviz=True)
 
     def deleteItem(self):
         for item in self.scene.selectedItems():
-            diagram_item = item
-            if isinstance(item, QtWidgets.QGraphicsItemGroup):
-                diagram_item = self.group_item[item]
-            if isinstance(diagram_item, DiagramItem):
-                diagram_item.removeArrows()
-                self.scene.generateModel.removeFactor(diagram_item)
+            if isinstance(item, DiagramItem):
+                item.removeArrows()
+                if item.relatedTextItem != None:
+                    self.scene.removeItem(item.relatedTextItem)
+                self.scene.generateModel.removeFactor(item)
             elif isinstance(item, Arrow) or isinstance(item, DoubleArrow):
                 self.scene.generateModel.removeRelation(item)
+            elif isinstance(item, DiagramTextItem):
+                relatedItem = item.relatedItem
+                relatedItem.relatedTextItem = None
             self.scene.removeItem(item)
 
     def pointerGroupClicked(self, i):
@@ -355,16 +389,16 @@ class MainWindow(QtWidgets.QMainWindow):
         xLabel = 2000
         yLabel = 2200
         for column in self.data.columns:
-            group = self.scene.createItemGroup(self.scene.selectedItems())
-            group.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
-            group.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, True)
             item = self.scene.addFactor(1, QtCore.QPointF(xLabel, yLabel))
-            group.addToGroup(item['item'])
             columns.append(item['itemName'])
             textItem = self.scene.addTextItem('{}\n{}'.format(item['itemName'], column),
                                               QtCore.QPointF(xLabel - 50, yLabel - 50))
-            group.addToGroup(textItem)
-            self.group_item[group] = item['item']
+            item['item'].relatedTextItem = textItem
+            textItem.relatedItem = item['item']
+            item['item'].setSelected(False)
+            textItem.setSelected(False)
+            self.scene.addItem(item['item'])
+            self.scene.addItem(textItem)
 
             xLabel = xLabel + 200
             if xLabel % 2000 == 0:
