@@ -378,8 +378,10 @@ class MainWindow(QtWidgets.QMainWindow):
         fileDialog.setViewMode(QtWidgets.QFileDialog.Detail)
         fileDialog.setDirectory('.')
 
-        if fileDialog.exec() == QtWidgets.QFileDialog.Accepted:
+        if fileDialog.exec() == QtWidgets.QFileDialog.Accepted and  len(fileDialog.selectedFiles()) == 1:
             path = fileDialog.selectedFiles()[0]
+        else:
+            return
 
         self.data = pd.read_excel(path)
         self.description = self.data.columns
@@ -497,7 +499,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.fileMenu.addAction(self.updateDataAction)
         self.fileMenu.addAction(self.exitAction)
 
-        self.itemMenu = self.menuBar().addMenu("&Item")
+        self.itemMenu = self.menuBar().addMenu("&Edit")
         self.itemMenu.addAction(self.calculateAction)
         self.itemMenu.addSeparator()
         self.itemMenu.addAction(self.deleteAction)
