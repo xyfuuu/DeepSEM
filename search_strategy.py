@@ -1,29 +1,22 @@
 import numpy as np
 import pickle as pkl
+import logging
+import sys
 import autogluon as ag
 import matplotlib.pyplot as plt
+import mxnet as mx
 
 from frontend_python.output import GraphvizVisualization
+from frontend_python.progressbar import ProgressVisualization
+# from frontend_python.RL_Scheduler import RLScheduler
+from collections import OrderedDict
+from autogluon.utils import (save, load, mkdir, try_import_mxboard, tqdm)
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
 
-
-class RLScheduler(ag.scheduler.RLScheduler):
-    def __init__(self, train_fn, **kwargs):
-        super().__init__(train_fn, **kwargs)
-
-    def get_topk_config(self, k):
-        """Returns top k configurations found so far.
-        """
-        with self.LOCK:
-            if self.searcher.results:
-                topk_configs = list()
-                for config_pkl, reward in sorted(self.searcher.results.items(), key=lambda item: -item[1]):
-                    topk_configs.append(pkl.loads(config_pkl))
-                    if len(topk_configs) >= k:
-                        break
-                return topk_configs
-            else:
-                return list()
-
+import logging
+logger = logging.getLogger(__name__)
 
 class ModelSearcher:
 
@@ -36,7 +29,9 @@ class ModelSearcher:
             reward = model_evaluator.evaluate(model, data)
             reporter(reward=reward)
 
-        self.searcher = RLScheduler(evaluate_callback,
+        # self.progress = ProgressVisualization()
+        # self.progress.show()
+        self.searcher = ProgressVisualization(evaluate_callback,
                                     args=args,
                                     resource={'num_cpus': 1, 'num_gpus': 0},
                                     num_trials=500,
@@ -52,6 +47,9 @@ class ModelSearcher:
         # Running this function might crash Python.
         # This problem is caused by the multiprocessing of the RL algorithm and lavaan in R.
         # But the numeric part has been take care of, so the result is not corrupted.
+        # self.progress = ProgressVisualization()
+        # self.progress.show()
+
         self.searcher.run()
         self.searcher.join_jobs()
 
