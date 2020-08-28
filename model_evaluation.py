@@ -14,7 +14,12 @@ class ModelEvaluator:
         self.variable_embedded = {v: f for v, f in zip(variable_descriptions.keys(), features)}
 
     @staticmethod
-    def _evaluate_with_sem(model, data):
+    def evaluate_with_sem(model, data):
+        # This is based on the prior knowledge from SEM
+        for _, variables in model['measurement_dict'].items():
+            if len(variables) < 2:
+                return None
+
         model = ModelEvaluator.dict2lavaan(model)
         sem = SemModel()
 
@@ -79,16 +84,9 @@ class ModelEvaluator:
 
         return reward
 
-    def evaluate(self, model, data):
-        # This is based on the prior knowledge from SEM
-        for _, variables in model['measurement_dict'].items():
-            if len(variables) < 2:
-                return 0
-
-        sem_indexes = ModelEvaluator._evaluate_with_sem(model, data)
-
+    def evaluate_with_index(self, model, sem_indexes):
         if sem_indexes is None:
-            return 0
+            return -1
 
         agfi = sem_indexes['agfi']
         rmsea = sem_indexes['rmsea']
@@ -96,5 +94,13 @@ class ModelEvaluator:
 
         index = agfi - rmsea * 10 + nlp_reward / 2
         index = 1 / (1 + np.exp(-index))
+
+        return index
+
+    def evaluate(self, model, data, sem_indexes=None):
+        if sem_indexes is None:
+            sem_indexes = ModelEvaluator.evaluate_with_sem(model, data)
+
+        index = self.evaluate_with_index(model, sem_indexes)
 
         return index
