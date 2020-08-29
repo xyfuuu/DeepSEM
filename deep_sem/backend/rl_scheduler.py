@@ -19,6 +19,7 @@ class RLScheduler(ag.scheduler.RLScheduler, QThread):
         self.working = True
         self.num = 0
 
+        self.results = dict()
         self.data = data
         self.search_space = search_space
         self.verified_proportion = verified_proportion
@@ -26,16 +27,15 @@ class RLScheduler(ag.scheduler.RLScheduler, QThread):
     def get_topk_config(self, k):
         """Returns top k configurations found so far.
         """
-        with self.LOCK:
-            if self.searcher.results:
-                topk_configs = list()
-                for config_pkl, reward in sorted(self.searcher.results.items(), key=lambda item: -item[1]):
-                    topk_configs.append(pkl.loads(config_pkl))
-                    if len(topk_configs) >= k:
-                        break
-                return topk_configs
-            else:
-                return list()
+        if self.results:
+            topk_configs = list()
+            for config_pkl, reward in sorted(self.results.items(), key=lambda item: -item[1]):
+                topk_configs.append(pkl.loads(config_pkl))
+                if len(topk_configs) >= k:
+                    break
+            return topk_configs
+        else:
+            return list()
 
     @staticmethod
     def _verify(config, data):
@@ -49,33 +49,32 @@ class RLScheduler(ag.scheduler.RLScheduler, QThread):
         p = mp.Pool(mp.cpu_count())
         test_results = p.starmap(RLScheduler._verify, zip(configs_dict, [self.data for _ in range(sample_size)]))
 
-        return configs_batch, log_probs_batch, test_results
+        for config, index in zip(configs_batch, test_results):
+            config['indexes'] = index
+
+        return configs_batch, log_probs_batch
 
     def _sample_verified(self, batch_size, verified_proportion=1.0):
         assert 0.0 <= verified_proportion <= 1.0
 
-        configs, log_probs, indexes = [], [], []
+        configs, log_probs = [], []
 
         sample_size = batch_size
         while True:
-            configs_batch, log_probs_batch, test_results = self._sample(sample_size)
+            configs_batch, log_probs_batch = self._sample(sample_size)
 
-            for idx, result in enumerate(test_results):
-                if result is not None:
+            for idx, config in enumerate(configs_batch):
+                if config['indexes'] is not None:
                     configs.append(configs_batch[idx])
                     log_probs.append(log_probs_batch[idx])
-                    indexes.append(result)
 
                 if len(configs) >= batch_size * verified_proportion:
                     unverified_sample_size = math.floor((1.0 - verified_proportion) * batch_size)
                     if unverified_sample_size >= 1:
-                        configs_unverified, log_probs_unverified, results_unverified = self._sample(
-                            unverified_sample_size)
+                        configs_unverified, log_probs_unverified = self._sample(unverified_sample_size)
                         configs.extend(configs_unverified)
                         log_probs.extend(log_probs_unverified)
-                        indexes.extend(results_unverified)
-
-                    return configs, F.stack(*log_probs), indexes
+                    return configs, F.stack(*log_probs),
 
             sample_size *= 2
             print("%d calculating %d\n" % (len(configs), sample_size))
@@ -91,10 +90,13 @@ class RLScheduler(ag.scheduler.RLScheduler, QThread):
                     else self.controller_batch_size
                 if batch_size == 0:
                     continue
-                configs, log_probs, indexes = self._sample_verified(batch_size, self.verified_proportion)
+                configs, log_probs = self._sample_verified(batch_size, self.verified_proportion)
                 # schedule the training tasks and gather the reward
-                rewards = self.sync_schedule_tasks(configs)
-                # print(rewards)
+                # rewards = self.sync_schedule_tasks(configs)
+                rewards = list(map(self.train_fn, configs))
+                for config, reward in zip(configs, rewards):
+                    self.results[pkl.dumps(config)] = reward
+                print(rewards)
                 # substract baseline
                 if self.baseline is None:
                     self.baseline = rewards[0]

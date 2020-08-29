@@ -44,7 +44,7 @@ class generateModel():
             else:
                 startName = self.observed_dict[endItem]
                 endName = self.latent_dict[startItem]
-            self.measurement_dict[startName].append(endName)
+            self.measurement_dict[endName].append(startName)
         else:
             if self.factorType[startItem] == 0:
                 startName = self.observed_dict[startItem]
