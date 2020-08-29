@@ -256,7 +256,7 @@ class MainWindow(QtWidgets.QMainWindow):
         variableDescription = {var: des for var, des in zip(variableNames, self.description)}
         factorNames = self.scene.fetch_factors()
 
-        search_space = SearchSpace(factorNames, variableNames)
+        search_space = SearchSpace(factorNames, variableNames, model)
         model_evaluator = ModelEvaluator(variableDescription)
 
         rl_searcher = ModelSearcher(search_space, model_evaluator, self.data, model)

@@ -5,17 +5,19 @@ from PyQt5 import QtGui, QtWidgets
 
 
 class PaintPicture(QtWidgets.QDialog):
-    def __init__(self, models, variable_description=None):
+    def __init__(self, models, evaluations, variable_description=None):
         super(PaintPicture, self).__init__()
 
         if variable_description is None:
             variable_description = dict()
         self.models = models
         self.variableDescription = variable_description
+        self.evaluations = evaluations
 
         self.current_id = 0
         self.current_label = None
         self.current_image = None
+        self.current_evaluation = None
 
         layout = QtWidgets.QVBoxLayout()
 
@@ -103,22 +105,32 @@ class PaintPicture(QtWidgets.QDialog):
         image = QtGui.QImage(full_path)
 
         imageLabel = QtWidgets.QLabel()
-        imageLabel.setPixmap(QtGui.QPixmap.fromImage(image))
+        pixmap = QtGui.QPixmap.fromImage(image)
+        pixmap = pixmap.scaledToHeight(500)
+        imageLabel.setPixmap(pixmap)
+
+        evaluationLabel = QtWidgets.QLabel()
+        evaluationLabel.setText(str(self.evaluations[self.current_id]))
 
         layout = self.layout()
+        if self.current_evaluation:
+            layout.removeWidget(self.current_evaluation)
+            self.current_evaluation.deleteLater()
         if self.current_label:
             layout.removeWidget(self.current_label)
             self.current_label.deleteLater()
+        layout.addWidget(evaluationLabel)
         layout.addWidget(imageLabel)
 
         self.current_label = imageLabel
+        self.current_evaluation = evaluationLabel
         self.current_image = image
 
 
 class GraphvizVisualization:
-    def __init__(self, models, variable_description=None):
+    def __init__(self, models, evaluation, variable_description=None):
         self.app = QtWidgets.QApplication(sys.argv)
-        self.windows = PaintPicture(models, variable_description)
+        self.windows = PaintPicture(models, evaluation, variable_description)
 
     def show(self):
         self.app.exec_()

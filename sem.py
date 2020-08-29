@@ -1,7 +1,7 @@
 import rpy2.robjects as robjects
 from rpy2.robjects.packages import importr
 from rpy2.robjects import r, pandas2ri
-from rpy2.robjects.vectors import  ListVector
+from rpy2.robjects.vectors import ListVector
 import time
 
 CREATE_MODEL_STMT_EXAMPLE = '''
@@ -47,9 +47,24 @@ class SemModel:
         except:
             print('Error in evaluate_sem_model function.')
             return {'is_evaluated': False}
+
+        # See available indexes at: https://rdrr.io/cran/lavaan/man/fitMeasures.html
         agfi = tuple(fit_measure_res.rx('agfi'))[0]
         rmsea = tuple(fit_measure_res.rx('rmsea'))[0]
-        return {'is_evaluated': True, 'agfi': agfi, 'rmsea': rmsea}
+        pvalue = tuple(fit_measure_res.rx('pvalue'))[0]
+        nfi = tuple(fit_measure_res.rx('nfi'))[0]
+        cfi = tuple(fit_measure_res.rx('cfi'))[0]
+        rfi = tuple(fit_measure_res.rx('rfi'))[0]
+        pgfi = tuple(fit_measure_res.rx('pgfi'))[0]
+
+        return {'is_evaluated': True,
+                'agfi': agfi,
+                'rmsea': rmsea,
+                'pvalue': pvalue,
+                'nfi': nfi,
+                'cfi': cfi,
+                'rfi': rfi,
+                'pgfi': pgfi}
 
 
 if __name__ == '__main__':

@@ -4,8 +4,8 @@ import mxnet as mx
 import pickle as pkl
 from tqdm import tqdm
 import autogluon as ag
-import multiprocessing
 import mxnet.ndarray as F
+import multiprocessing as mp
 import matplotlib.pyplot as plt
 
 from frontend_python.output import GraphvizVisualization
@@ -43,7 +43,7 @@ class RLScheduler(ag.scheduler.RLScheduler):
         configs_batch, log_probs_batch, _ = self.controller.sample(sample_size, with_details=True)
         configs_dict = map(self.search_space.gluon2dict, configs_batch)
 
-        p = multiprocessing.Pool(multiprocessing.cpu_count())
+        p = mp.Pool(mp.cpu_count())
         test_results = p.starmap(RLScheduler._verify, zip(configs_dict, [self.data for _ in range(sample_size)]))
 
         return configs_batch, log_probs_batch, test_results
@@ -90,7 +90,7 @@ class RLScheduler(ag.scheduler.RLScheduler):
                 configs, log_probs, indexes = self._sample_verified(batch_size, self.verified_proportion)
                 # schedule the training tasks and gather the reward
                 rewards = self.sync_schedule_tasks(configs)
-                print(rewards)
+                # print(rewards)
                 # substract baseline
                 if self.baseline is None:
                     self.baseline = rewards[0]
@@ -110,7 +110,7 @@ class RLScheduler(ag.scheduler.RLScheduler):
 
 class ModelSearcher:
 
-    def __init__(self, search_space, model_evaluator, data, args=None):
+    def __init__(self, search_space, model_evaluator, data, args=None, num_trials=100):
         space = search_space.fetch()
 
         @ag.args(**space)
@@ -119,13 +119,13 @@ class ModelSearcher:
             reward = model_evaluator.evaluate(model, data)
             reporter(reward=reward)
 
-        self.searcher = RLScheduler(evaluate_callback, data, search_space, 0.7,
+        self.searcher = RLScheduler(evaluate_callback, data, search_space, 0,
                                     args=args,
                                     resource={'num_cpus': 1, 'num_gpus': 0},
-                                    num_trials=500,
+                                    num_trials=num_trials,
                                     reward_attr='reward',
-                                    controller_batch_size=5,
-                                    controller_lr=1e-3)
+                                    controller_batch_size=1,
+                                    controller_lr=1e-4)
 
         self.evaluator = model_evaluator
         self.searchSpace = search_space
@@ -147,7 +147,8 @@ class ModelSearcher:
 
         if graphviz:
             models = [self.searchSpace.gluon2dict(arg) for arg in args]
-            vis = GraphvizVisualization(models, self.evaluator.variable_descriptions)
+            evaluation = [self.evaluator.evaluate_with_sem(model, self.data) for model in models]
+            vis = GraphvizVisualization(models, evaluation, self.evaluator.variable_descriptions)
             vis.show()
         else:
             for rank, arg in enumerate(args):
