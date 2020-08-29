@@ -200,7 +200,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.widget.setLayout(layout)
 
         self.setCentralWidget(self.widget)
-        self.setWindowTitle("Diagramscene")
+        self.setWindowTitle("DeepSEM")
 
     def backgroundButtonGroupClicked(self, button):
         buttons = self.backgroundButtonGroup.buttons()
@@ -365,18 +365,40 @@ class MainWindow(QtWidgets.QMainWindow):
         self.underlineAction.setChecked(font.underline())
 
     def about(self):
-        QtWidgets.QMessageBox.about(self, "About Diagram Scene",
-                                    "The <b>Diagram Scene</b> example shows use of the graphics framework.")
+        aboutDialog = QtWidgets.QDialog()
+        aboutDialog.setWindowTitle('About DSEM')
+
+        buildInfo = QtWidgets.QLabel("<b>DSEM<b> is build on Aug. 28, 2020.")
+
+        moreInfo = QtWidgets.QLabel(
+            """Click <a href="https://github.com/xyfuuu/SEM">here</a> for more information.""")
+        moreInfo.setOpenExternalLinks(True)
+
+        license = QtWidgets.QLabel(
+            """Copyright (c) <a href="https://www.gnu.org/licenses/gpl-3.0.en.html" target="_blank">GNU General Public License v3.0</a>""")
+        license.setOpenExternalLinks(True)
+
+        GridLayout = QtWidgets.QGridLayout()
+        aboutDialog.setLayout(GridLayout)
+        GridLayout.addWidget(buildInfo, 1, 1)
+        GridLayout.addWidget(moreInfo, 2, 1)
+        GridLayout.addWidget(license, 3, 1)
+
+        aboutDialog.exec()
 
     def updateData(self):
         fileDialog = QtWidgets.QFileDialog()
         fileDialog.setWindowTitle('Select Data Source')
         fileDialog.setFileMode(QtWidgets.QFileDialog.AnyFile)
         fileDialog.setViewMode(QtWidgets.QFileDialog.Detail)
-        fileDialog.setDirectory('.')
 
-        if fileDialog.exec() == QtWidgets.QFileDialog.Accepted:
-            path = fileDialog.selectedFiles()[0]
+        fileNames = fileDialog.getOpenFileName(None, "Select Data Source",
+                                               ".", "Excel files(*.xls *.xlsx)")
+        print(fileNames[0])
+        if fileNames[0] == '' or fileNames[1] != "Excel files(*.xls *.xlsx)":
+            return
+
+        path = fileNames[0]
 
         self.data = pd.read_excel(path)
         self.description = self.data.columns
@@ -411,7 +433,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         layout = QtWidgets.QGridLayout()
         layout.addWidget(self.createCellWidget("Latnet Variables", DiagramItem.Conditional), 0, 0)
-        layout.addWidget(self.createCellWidget("Observed Variables", DiagramItem.Step), 0, 1)
+        layout.addWidget(self.createCellWidget("Observed Variables", DiagramItem.Step), 1, 0)
 
         textButton = QtWidgets.QToolButton()
         textButton.setCheckable(True)
@@ -426,7 +448,7 @@ class MainWindow(QtWidgets.QMainWindow):
                              QtCore.Qt.AlignCenter)
         textWidget = QtWidgets.QWidget()
         textWidget.setLayout(textLayout)
-        layout.addWidget(textWidget, 1, 1)
+        layout.addWidget(textWidget, 2, 0)
 
         layout.setRowStretch(3, 10)
         layout.setColumnStretch(2, 10)
@@ -441,11 +463,11 @@ class MainWindow(QtWidgets.QMainWindow):
         backgroundLayout.addWidget(self.createBackgroundCellWidget("Blue Grid",
                                                                    ':/images/background1.png'), 0, 0)
         backgroundLayout.addWidget(self.createBackgroundCellWidget("White Grid",
-                                                                   ':/images/background2.png'), 0, 1)
+                                                                   ':/images/background2.png'), 1, 0)
         backgroundLayout.addWidget(self.createBackgroundCellWidget("Gray Grid",
-                                                                   ':/images/background3.png'), 1, 0)
+                                                                   ':/images/background3.png'), 2, 0)
         backgroundLayout.addWidget(self.createBackgroundCellWidget("No Grid",
-                                                                   ':/images/background4.png'), 1, 1)
+                                                                   ':/images/background4.png'), 3, 1)
 
         backgroundLayout.setRowStretch(2, 10)
         backgroundLayout.setColumnStretch(2, 10)
@@ -494,7 +516,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.fileMenu.addAction(self.updateDataAction)
         self.fileMenu.addAction(self.exitAction)
 
-        self.itemMenu = self.menuBar().addMenu("&Item")
+        self.itemMenu = self.menuBar().addMenu("&Edit")
         self.itemMenu.addAction(self.calculateAction)
         self.itemMenu.addSeparator()
         self.itemMenu.addAction(self.deleteAction)
