@@ -1,4 +1,4 @@
-from diagram_items import Arrow, DoubleArrow, DiagramTextItem, DiagramItem
+from .diagram_items import Arrow
 
 
 class generateModel():

@@ -8,6 +8,7 @@ class SearchSpace:
         self.variableNames = variable_names
         self.model_fixed = model_fixed
         self.choice2name = {var: factor_names for var in variable_names}
+        print(self.choice2name)
 
         self.factorCount = len(factor_names)
         self.variableCount = len(variable_names)

@@ -1,8 +1,7 @@
-import math
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
-from sem import SemModel
+from .sem import SemModel
 
 
 class ModelEvaluator:

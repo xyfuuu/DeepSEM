@@ -6,7 +6,8 @@ import autogluon as ag
 import mxnet.ndarray as F
 import multiprocessing as mp
 
-from model_evaluation import ModelEvaluator
+from .model_evaluation import ModelEvaluator
+
 
 class RLScheduler(ag.scheduler.RLScheduler):
     def __init__(self, train_fn, data, search_space, verified_proportion, **kwargs):

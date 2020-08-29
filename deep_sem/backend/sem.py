@@ -1,24 +1,9 @@
 import rpy2.robjects as robjects
+import rpy2.rinterface_lib as rlib
+from rpy2.robjects import pandas2ri
 from rpy2.robjects.packages import importr
-from rpy2.robjects import r, pandas2ri
 from rpy2.robjects.vectors import ListVector
 import time
-
-CREATE_MODEL_STMT_EXAMPLE = '''
-    # measurement model
-    eta_1  =~ y1 + l2*y2 + l3*y3 + l4*y4
-    eta_2  =~ y5 + l2*y6 + l3*y7 + l4*y8
-    xi_1   =~ x1 + x2 + x3
-    # regressions
-    eta_1 ~ xi_1
-    eta_2 ~ eta_1 + xi_1
-    # residual correlations
-    y1 ~~ y5
-    y2 ~~ y4 + y6
-    y3 ~~ y7
-    y4 ~~ y8
-    y6 ~~ y8
-'''
 
 
 class SemModel:
@@ -68,6 +53,22 @@ class SemModel:
 
 
 if __name__ == '__main__':
+    CREATE_MODEL_STMT_EXAMPLE = '''
+        # measurement model
+        eta_1  =~ y1 + l2*y2 + l3*y3 + l4*y4
+        eta_2  =~ y5 + l2*y6 + l3*y7 + l4*y8
+        xi_1   =~ x1 + x2 + x3
+        # regressions
+        eta_1 ~ xi_1
+        eta_2 ~ eta_1 + xi_1
+        # residual correlations
+        y1 ~~ y5
+        y2 ~~ y4 + y6
+        y3 ~~ y7
+        y4 ~~ y8
+        y6 ~~ y8
+    '''
+
     sem = SemModel()
     rData = robjects.r('PoliticalDemocracy')
 

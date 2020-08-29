@@ -2,13 +2,13 @@ import numpy as np
 import autogluon as ag
 import matplotlib.pyplot as plt
 
-from frontend_python.output import GraphvizVisualization
-from RL_Scheduler import RLScheduler
+from .rl_scheduler import RLScheduler
+from ..frontend.output import PaintPicture
 
 
 class ModelSearcher:
 
-    def __init__(self, search_space, model_evaluator, data, args=None, num_trials=100):
+    def __init__(self, search_space, model_evaluator, data, args=None, num_trials=8):
         space = search_space.fetch()
 
         @ag.args(**space)
@@ -46,8 +46,8 @@ class ModelSearcher:
         if graphviz:
             models = [self.searchSpace.gluon2dict(arg) for arg in args]
             evaluation = [self.evaluator.evaluate_with_sem(model, self.data) for model in models]
-            vis = GraphvizVisualization(models, evaluation, self.evaluator.variable_descriptions)
-            vis.show()
+            output_dialog = PaintPicture(models, evaluation, self.evaluator.variable_descriptions)
+            output_dialog.exec()
         else:
             for rank, arg in enumerate(args):
                 model = self.searchSpace.gluon2dict(arg)
