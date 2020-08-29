@@ -8,7 +8,7 @@ from ..frontend.output import PaintPicture
 
 class ModelSearcher:
 
-    def __init__(self, search_space, model_evaluator, data, args=None, num_trials=8):
+    def __init__(self, search_space, model_evaluator, data, args=None, num_trials=100):
         space = search_space.fetch()
 
         @ag.args(**space)
@@ -17,7 +17,7 @@ class ModelSearcher:
             reward = model_evaluator.evaluate(model, data)
             reporter(reward=reward)
 
-        self.searcher = RLScheduler(evaluate_callback, data, search_space, 0,
+        self.searcher = RLScheduler(evaluate_callback, data, search_space, 0.5,
                                     args=args,
                                     resource={'num_cpus': 1, 'num_gpus': 0},
                                     num_trials=num_trials,
