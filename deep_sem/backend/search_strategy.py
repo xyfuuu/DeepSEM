@@ -1,43 +1,29 @@
 import numpy as np
-import pickle as pkl
-import logging
-import sys
 import autogluon as ag
 import matplotlib.pyplot as plt
-import mxnet as mx
 
-from frontend_python.output import GraphvizVisualization
-from frontend_python.progressbar import ProgressVisualization
-# from frontend_python.RL_Scheduler import RLScheduler
-from collections import OrderedDict
-from autogluon.utils import (save, load, mkdir, try_import_mxboard, tqdm)
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
+from ..frontend.output import PaintPicture
+from ..frontend.progressbar import ProgressVisualization
 
-import logging
-logger = logging.getLogger(__name__)
 
 class ModelSearcher:
 
-    def __init__(self, search_space, model_evaluator, data, args=None):
+    def __init__(self, search_space, model_evaluator, data, args=None, num_trials=100):
         space = search_space.fetch()
 
         @ag.args(**space)
-        def evaluate_callback(args, reporter):
-            model = search_space.gluon2dict(args)
+        def evaluate_callback(config, reporter):
+            model = search_space.gluon2dict(config)
             reward = model_evaluator.evaluate(model, data)
             reporter(reward=reward)
 
-        # self.progress = ProgressVisualization()
-        # self.progress.show()
-        self.searcher = ProgressVisualization(evaluate_callback,
-                                    args=args,
-                                    resource={'num_cpus': 1, 'num_gpus': 0},
-                                    num_trials=500,
-                                    reward_attr='reward',
-                                    controller_batch_size=5,
-                                    controller_lr=1e-3)
+        self.searcher = ProgressVisualization(evaluate_callback, data, search_space, 0,
+                                              args=args,
+                                              resource={'num_cpus': 1, 'num_gpus': 0},
+                                              num_trials=num_trials,
+                                              reward_attr='reward',
+                                              controller_batch_size=4,
+                                              controller_lr=1e-3)
 
         self.evaluator = model_evaluator
         self.searchSpace = search_space
@@ -62,8 +48,9 @@ class ModelSearcher:
 
         if graphviz:
             models = [self.searchSpace.gluon2dict(arg) for arg in args]
-            vis = GraphvizVisualization(models, self.evaluator.variable_descriptions)
-            vis.show()
+            evaluation = [self.evaluator.evaluate_with_sem(model, self.data) for model in models]
+            output_dialog = PaintPicture(models, evaluation, self.evaluator.variable_descriptions)
+            output_dialog.exec()
         else:
             for rank, arg in enumerate(args):
                 model = self.searchSpace.gluon2dict(arg)

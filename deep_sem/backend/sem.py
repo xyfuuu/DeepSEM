@@ -1,24 +1,9 @@
 import rpy2.robjects as robjects
+import rpy2.rinterface_lib as rlib
+from rpy2.robjects import pandas2ri
 from rpy2.robjects.packages import importr
-from rpy2.robjects import r, pandas2ri
-from rpy2.robjects.vectors import  ListVector
+from rpy2.robjects.vectors import ListVector
 import time
-
-CREATE_MODEL_STMT_EXAMPLE = '''
-    # measurement model
-    eta_1  =~ y1 + l2*y2 + l3*y3 + l4*y4
-    eta_2  =~ y5 + l2*y6 + l3*y7 + l4*y8
-    xi_1   =~ x1 + x2 + x3
-    # regressions
-    eta_1 ~ xi_1
-    eta_2 ~ eta_1 + xi_1
-    # residual correlations
-    y1 ~~ y5
-    y2 ~~ y4 + y6
-    y3 ~~ y7
-    y4 ~~ y8
-    y6 ~~ y8
-'''
 
 
 class SemModel:
@@ -47,12 +32,43 @@ class SemModel:
         except:
             print('Error in evaluate_sem_model function.')
             return {'is_evaluated': False}
+
+        # See available indexes at: https://rdrr.io/cran/lavaan/man/fitMeasures.html
         agfi = tuple(fit_measure_res.rx('agfi'))[0]
         rmsea = tuple(fit_measure_res.rx('rmsea'))[0]
-        return {'is_evaluated': True, 'agfi': agfi, 'rmsea': rmsea}
+        pvalue = tuple(fit_measure_res.rx('pvalue'))[0]
+        nfi = tuple(fit_measure_res.rx('nfi'))[0]
+        cfi = tuple(fit_measure_res.rx('cfi'))[0]
+        rfi = tuple(fit_measure_res.rx('rfi'))[0]
+        pgfi = tuple(fit_measure_res.rx('pgfi'))[0]
+
+        return {'is_evaluated': True,
+                'agfi': agfi,
+                'rmsea': rmsea,
+                'pvalue': pvalue,
+                'nfi': nfi,
+                'cfi': cfi,
+                'rfi': rfi,
+                'pgfi': pgfi}
 
 
 if __name__ == '__main__':
+    CREATE_MODEL_STMT_EXAMPLE = '''
+        # measurement model
+        eta_1  =~ y1 + l2*y2 + l3*y3 + l4*y4
+        eta_2  =~ y5 + l2*y6 + l3*y7 + l4*y8
+        xi_1   =~ x1 + x2 + x3
+        # regressions
+        eta_1 ~ xi_1
+        eta_2 ~ eta_1 + xi_1
+        # residual correlations
+        y1 ~~ y5
+        y2 ~~ y4 + y6
+        y3 ~~ y7
+        y4 ~~ y8
+        y6 ~~ y8
+    '''
+
     sem = SemModel()
     rData = robjects.r('PoliticalDemocracy')
 

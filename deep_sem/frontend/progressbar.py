@@ -5,9 +5,9 @@ import sys
 import time
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
-from PyQt5.QtGui import *
 
-from RL_Scheduler import RLScheduler
+from ..backend.rl_scheduler import RLScheduler
+
 
 class ProgressBar(QDialog):
     def __init__(self, train_fn, **kwargs):
@@ -16,10 +16,10 @@ class ProgressBar(QDialog):
         self.pbar = QProgressBar(self)
         self.pbar.setGeometry(30, 40, 200, 25)
         self.timer = QBasicTimer()
-        self.timer.start(100,self)
+        self.timer.start(100, self)
         self.step = 0
         self.setGeometry(300, 300, 280, 170)
-        
+
         self.show()
 
         self.thread = RLScheduler(train_fn, **kwargs)
@@ -35,7 +35,7 @@ class ProgressBar(QDialog):
 
     def get_best_config(self):
         return self.thread.get_best_config()
-    
+
     def get_best_reward(self):
         return self.thread.get_best_reward()
 
@@ -51,12 +51,13 @@ class ProgressBar(QDialog):
             return
         self.step = target
         self.pbar.setValue(self.step)
-    
+
     def slotStart(self):
-        #开始按钮不可点击，线程开始
+        # 开始按钮不可点击，线程开始
         self.btnStart.setEnabled(False)
         self.thread.start()
         print("Done Start")
+
 
 class Worker(QThread):
     sinOut = pyqtSignal(int)
@@ -74,15 +75,14 @@ class Worker(QThread):
             time.sleep(0.1)
             self.sinOut.emit(i)
 
-    
 
 class ProgressVisualization:
     def __init__(self, train_fn, **kwargs):
         self.app = QApplication(sys.argv)
         # self.progressBar = ProgressBar(train_fn, **kwargs)
         self.windows = ProgressBar(train_fn, **kwargs)
-        #self.progressBar
-    
+        # self.progressBar
+
     def run(self):
         self.windows.run()
 
@@ -91,7 +91,7 @@ class ProgressVisualization:
 
     def get_best_config(self):
         return self.windows.get_best_config()
-    
+
     def get_best_reward(self):
         return self.windows.get_best_reward()
 

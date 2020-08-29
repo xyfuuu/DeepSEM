@@ -3,27 +3,36 @@ import autogluon as ag
 
 class SearchSpace:
 
-    def __init__(self, factor_names, variable_names):
+    def __init__(self, factor_names, variable_names, model_fixed=None):
         self.factorNames = factor_names
         self.variableNames = variable_names
+        self.model_fixed = model_fixed
+        self.choice2name = {var: factor_names for var in variable_names}
+        print(self.choice2name)
 
         self.factorCount = len(factor_names)
         self.variableCount = len(variable_names)
 
-        self.space = self._generate_search_space(factor_names, len(factor_names), variable_names)
+        self.space = self._generate_search_space()
 
     # Define search space using AutoGluon syntax.
     # See more of the syntax at: https://autogluon.mxnet.io/api/autogluon.space.html
-    @staticmethod
-    def _generate_search_space(factor_names, factor_count, variable_names):
+    def _generate_search_space(self):
         # Define search space for measurement model
-        search_space = {var: ag.space.Categorical(*factor_names)
-                        for var in variable_names}
+        search_space = {var: ag.space.Categorical(*self.factorNames) for var in self.variableNames}
 
         # Define search space for regressions model
-        for i in range(factor_count):
+        for i in range(self.factorCount):
             for j in range(i):
-                search_space[str((factor_names[i], factor_names[j]))] = ag.space.Categorical(*list(range(4)))
+                # 3 means ignoring covariance choices
+                search_space[str((self.factorNames[i], self.factorNames[j]))] = ag.space.Categorical(*list(range(3)))
+
+        if self.model_fixed is not None and 'measurement_dict' in self.model_fixed.keys():
+            measurement_model = self.model_fixed['measurement_dict']
+            for factor, variables in measurement_model.items():
+                for variable in variables:
+                    search_space[variable] = ag.space.Categorical(*[factor])
+                    self.choice2name[variable] = [factor]
 
         return search_space
 
@@ -46,8 +55,7 @@ class SearchSpace:
             if var[0] != '(':  # measurement
                 # This if is added because the special format of get_best_config() in AutoGlugon.
                 if isinstance(choice, int):
-                    print(self.factorNames, choice)
-                    measurement_dict[self.factorNames[choice]].append(var)
+                    measurement_dict[self.choice2name[var][choice]].append(var)
                 else:
                     measurement_dict[choice].append(var)
             else:  # regressions

@@ -1,18 +1,15 @@
-import sys
 import pandas as pd
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from diagram_items import Arrow, DoubleArrow, DiagramTextItem, DiagramItem
-from generate_model import generateModel
+from .diagram_items import Arrow, DoubleArrow, DiagramTextItem, DiagramItem
+from .generate_model import generateModel
 
 # pyrcc5 diagramscene.qrc -o diagramscene_rc.py
-import diagramscene_rc
+from .diagramscene_rc import *
 
-import sys
-sys.path.insert(0, '..')
-from search_space import SearchSpace
-from model_evaluation import ModelEvaluator
-from search_strategy import ModelSearcher
+from ..backend.search_space import SearchSpace
+from ..backend.model_evaluation import ModelEvaluator
+from ..backend.search_strategy import ModelSearcher
 
 
 class DiagramScene(QtWidgets.QGraphicsScene):
@@ -239,7 +236,8 @@ class MainWindow(QtWidgets.QMainWindow):
                         itemName = self.scene.generateModel.observed_dict[item]
                     else:
                         itemName = self.scene.generateModel.latent_dict[item]
-                    textItem = self.scene.addTextItem(itemName, QtCore.QPointF(item.pos().x() - 50, item.pos().y()- 50))
+                    textItem = self.scene.addTextItem(itemName,
+                                                      QtCore.QPointF(item.pos().x() - 50, item.pos().y() - 50))
                     item.relatedTextItem = textItem
                     textItem.relatedItem = item
                     item.setSelected(False)
@@ -256,7 +254,7 @@ class MainWindow(QtWidgets.QMainWindow):
         variableDescription = {var: des for var, des in zip(variableNames, self.description)}
         factorNames = self.scene.fetch_factors()
 
-        search_space = SearchSpace(factorNames, variableNames)
+        search_space = SearchSpace(factorNames, variableNames, model)
         model_evaluator = ModelEvaluator(variableDescription)
 
         rl_searcher = ModelSearcher(search_space, model_evaluator, self.data, model)
@@ -389,7 +387,7 @@ class MainWindow(QtWidgets.QMainWindow):
         xLabel = 2000
         yLabel = 2200
         for column in self.data.columns:
-            item = self.scene.addFactor(1, QtCore.QPointF(xLabel, yLabel))
+            item = self.scene.addFactor(0, QtCore.QPointF(xLabel, yLabel))
             columns.append(item['itemName'])
             textItem = self.scene.addTextItem('{}\n{}'.format(item['itemName'], column),
                                               QtCore.QPointF(xLabel - 50, yLabel - 50))

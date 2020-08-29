@@ -1,8 +1,7 @@
-import logging
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
-from SEM import SemModel
+from .sem import SemModel
 
 
 class ModelEvaluator:
@@ -14,7 +13,12 @@ class ModelEvaluator:
         self.variable_embedded = {v: f for v, f in zip(variable_descriptions.keys(), features)}
 
     @staticmethod
-    def _evaluate_with_sem(model, data):
+    def evaluate_with_sem(model, data):
+        # This is based on the prior knowledge from SEM
+        for factor, variables in model['measurement_dict'].items():
+            if len(variables) < 2:
+                return None
+
         model = ModelEvaluator.dict2lavaan(model)
         sem = SemModel()
 
@@ -79,22 +83,29 @@ class ModelEvaluator:
 
         return reward
 
-    def evaluate(self, model, data):
-        # This is based on the prior knowledge from SEM
-        for _, variables in model['measurement_dict'].items():
-            if len(variables) < 2:
-                return 0
-
-        sem_indexes = ModelEvaluator._evaluate_with_sem(model, data)
-
+    def evaluate_with_index(self, model, sem_indexes):
         if sem_indexes is None:
-            return 0
+            return -2
+
+        # print(sem_indexes)
 
         agfi = sem_indexes['agfi']
         rmsea = sem_indexes['rmsea']
-        nlp_reward = self._calculate_nlp_distance(model)
+        pvalue = sem_indexes['pvalue']
+        nfi = sem_indexes['nfi']
+        cfi = sem_indexes['cfi']
+        rfi = sem_indexes['rfi']
+        pgfi = sem_indexes['pgfi']
+        # nlp_reward = self._calculate_nlp_distance(model)
 
-        index = agfi - rmsea * 10 + nlp_reward / 2
-        index = 1 / (1 + np.exp(-index))
+        index = agfi - rmsea * 10 + pvalue * 10 + nfi + cfi + rfi + pgfi
+
+        return index
+
+    def evaluate(self, model, data, sem_indexes=None):
+        if sem_indexes is None:
+            sem_indexes = ModelEvaluator.evaluate_with_sem(model, data)
+
+        index = self.evaluate_with_index(model, sem_indexes)
 
         return index
