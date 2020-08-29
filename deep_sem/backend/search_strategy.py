@@ -2,28 +2,29 @@ import numpy as np
 import autogluon as ag
 import matplotlib.pyplot as plt
 
-from .rl_scheduler import RLScheduler
 from ..frontend.output import PaintPicture
+from ..frontend.progressbar import ProgressBar
+from .model_evaluation import ModelEvaluator
 
 
 class ModelSearcher:
 
-    def __init__(self, search_space, model_evaluator, data, args=None, num_trials=100):
+    def __init__(self, search_space, model_evaluator, data, num_trials=200):
         space = search_space.fetch()
 
         @ag.args(**space)
         def evaluate_callback(config, reporter):
+            indexes = config['indexes']
             model = search_space.gluon2dict(config)
-            reward = model_evaluator.evaluate(model, data)
-            reporter(reward=reward)
+            reward = model_evaluator.evaluate_with_index(model, indexes)
+            return reward
 
-        self.searcher = RLScheduler(evaluate_callback, data, search_space, 0.5,
-                                    args=args,
+        self.searcher = ProgressBar(evaluate_callback, data, search_space, 0.5,
                                     resource={'num_cpus': 1, 'num_gpus': 0},
                                     num_trials=num_trials,
                                     reward_attr='reward',
                                     controller_batch_size=4,
-                                    controller_lr=1e-3)
+                                    controller_lr=5e-3)
 
         self.evaluator = model_evaluator
         self.searchSpace = search_space
@@ -33,8 +34,9 @@ class ModelSearcher:
         # Running this function might crash Python.
         # This problem is caused by the multiprocessing of the RL algorithm and lavaan in R.
         # But the numeric part has been take care of, so the result is not corrupted.
+
         self.searcher.run()
-        self.searcher.join_jobs()
+        self.searcher.exec()
 
         if verbose:
             print('Best config: {}, best reward: {}'.format(self.searcher.get_best_config(),

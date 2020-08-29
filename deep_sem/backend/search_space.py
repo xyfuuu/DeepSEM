@@ -8,7 +8,6 @@ class SearchSpace:
         self.variableNames = variable_names
         self.model_fixed = model_fixed
         self.choice2name = {var: factor_names for var in variable_names}
-        print(self.choice2name)
 
         self.factorCount = len(factor_names)
         self.variableCount = len(variable_names)
@@ -49,7 +48,7 @@ class SearchSpace:
         for var, choice in args.items():
             if '▁' in var:
                 var = var.split('▁')[0]
-            elif var == 'task_id':
+            elif var in ['task_id', 'indexes']:
                 continue
 
             if var[0] != '(':  # measurement

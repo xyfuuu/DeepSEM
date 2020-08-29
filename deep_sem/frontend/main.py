@@ -1,5 +1,5 @@
 import pandas as pd
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtGui, QtWidgets
 
 from .diagram_items import Arrow, DoubleArrow, DiagramTextItem, DiagramItem
 from .generate_model import generateModel
@@ -256,8 +256,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         search_space = SearchSpace(factorNames, variableNames, model)
         model_evaluator = ModelEvaluator(variableDescription)
-
-        rl_searcher = ModelSearcher(search_space, model_evaluator, self.data, model)
+        rl_searcher = ModelSearcher(search_space, model_evaluator, self.data)
 
         rl_searcher.search(verbose=True)
 

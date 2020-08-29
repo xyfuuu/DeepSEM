@@ -87,8 +87,6 @@ class ModelEvaluator:
         if sem_indexes is None:
             return -2
 
-        # print(sem_indexes)
-
         agfi = sem_indexes['agfi']
         rmsea = sem_indexes['rmsea']
         pvalue = sem_indexes['pvalue']
@@ -98,7 +96,7 @@ class ModelEvaluator:
         pgfi = sem_indexes['pgfi']
         # nlp_reward = self._calculate_nlp_distance(model)
 
-        index = agfi - rmsea * 10 + pvalue * 10 + nfi + cfi + rfi + pgfi
+        index = agfi - rmsea * 20 + pvalue * 10 + nfi + cfi + rfi + pgfi
 
         return index
 
