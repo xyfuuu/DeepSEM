@@ -5,13 +5,19 @@ from tqdm import tqdm
 import autogluon as ag
 import mxnet.ndarray as F
 import multiprocessing as mp
+from PyQt5.QtCore import QThread, pyqtSignal
 
 from .model_evaluation import ModelEvaluator
 
 
-class RLScheduler(ag.scheduler.RLScheduler):
+class RLScheduler(ag.scheduler.RLScheduler, QThread):
+    sinOut = pyqtSignal(int)
+
     def __init__(self, train_fn, data, search_space, verified_proportion, **kwargs):
-        super().__init__(train_fn, **kwargs)
+        ag.scheduler.RLScheduler.__init__(self, train_fn, **kwargs)
+        QThread.__init__(self)
+        self.working = True
+        self.num = 0
 
         self.data = data
         self.search_space = search_space
@@ -79,6 +85,7 @@ class RLScheduler(ag.scheduler.RLScheduler):
         for i in tqdm(range(self.num_trials // self.controller_batch_size + 1)):
             with mx.autograd.record():
                 # sample controller_batch_size number of configurations
+                self.sinOut.emit(i * 100 // (self.num_trials // self.controller_batch_size + 1))
                 batch_size = self.num_trials % self.num_trials \
                     if i == self.num_trials // self.controller_batch_size \
                     else self.controller_batch_size

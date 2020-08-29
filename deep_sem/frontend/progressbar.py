@@ -10,7 +10,7 @@ from ..backend.rl_scheduler import RLScheduler
 
 
 class ProgressBar(QDialog):
-    def __init__(self, train_fn, **kwargs):
+    def __init__(self, train_fn, data, search_space, verified_proportion, **kwargs):
         super().__init__()
         self.setWindowTitle('Data Processing')
         self.pbar = QProgressBar(self)
@@ -22,9 +22,7 @@ class ProgressBar(QDialog):
 
         self.show()
 
-        self.thread = RLScheduler(train_fn, **kwargs)
-        # self.thread = Worker()
-        # self.thread.start()
+        self.thread = RLScheduler(train_fn, data, search_space, verified_proportion, **kwargs)
         self.thread.sinOut.connect(self.setProcess)
 
     def run(self):
@@ -77,10 +75,10 @@ class Worker(QThread):
 
 
 class ProgressVisualization:
-    def __init__(self, train_fn, **kwargs):
+    def __init__(self, train_fn, data, search_space, verified_proportion, **kwargs):
         self.app = QApplication(sys.argv)
         # self.progressBar = ProgressBar(train_fn, **kwargs)
-        self.windows = ProgressBar(train_fn, **kwargs)
+        self.windows = ProgressBar(train_fn, data, search_space, verified_proportion, **kwargs)
         # self.progressBar
 
     def run(self):
