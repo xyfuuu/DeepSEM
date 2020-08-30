@@ -4,12 +4,11 @@ import matplotlib.pyplot as plt
 
 from ..frontend.output import PaintPicture
 from ..frontend.progressbar import ProgressBar
-from .model_evaluation import ModelEvaluator
 
 
 class ModelSearcher:
 
-    def __init__(self, search_space, model_evaluator, data, num_trials=200):
+    def __init__(self, search_space, model_evaluator, data, num_trials=100):
         space = search_space.fetch()
 
         @ag.args(**space)

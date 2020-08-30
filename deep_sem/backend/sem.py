@@ -1,5 +1,4 @@
 import rpy2.robjects as robjects
-import rpy2.rinterface_lib as rlib
 from rpy2.robjects import pandas2ri
 from rpy2.robjects.packages import importr
 from rpy2.robjects.vectors import ListVector

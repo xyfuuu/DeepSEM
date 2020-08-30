@@ -419,8 +419,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.scene.addItem(item['item'])
             self.scene.addItem(textItem)
 
-            xLabel = xLabel + 200
-            if xLabel % 2000 == 0:
+            xLabel = xLabel + 220
+            if xLabel >= 3200:
                 xLabel = 2000
                 yLabel += 300
 
