@@ -11,7 +11,7 @@ Features
 ========
 * Powerful RL algorithm.
 * User-friendly UI.
-* Runs on Linux, MacOS, and Windows.
+* Runs on both Linux, MacOS.
 
 Get started
 ===========
@@ -26,6 +26,7 @@ Usage
 To launch the program, run the following command in bash:
 
 ```bash
+chmod +x run.sh
 ./run.sh
 ```
 
@@ -46,6 +47,8 @@ Run the following code in the project folder to install all the requirements:
 ```bash
 pip install -r requirements.txt
 ```
+
+Due to one key package we used, autogluon, doesn't support Windwos, this project requires MacOS or Linux.
 
 File Structure
 ===
