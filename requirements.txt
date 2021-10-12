@@ -118,7 +118,7 @@ numpy==1.17.4
 nvidia-ml-py3==7.352.1
 oauthlib==3.1.0
 opencv-contrib-python==3.4.2.16
-opencv-python==4.1.2.30
+opencv-python==4.2.0.32
 openml==0.10.2
 opt-einsum==3.1.0
 packaging==19.0
