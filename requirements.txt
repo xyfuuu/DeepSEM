@@ -32,7 +32,7 @@ cryptography==3.0
 cssselect==1.0.3
 cycler==0.10.0
 Cython==0.29.7
-dask==2.21.0
+dask==2021.10.0
 decorator==4.3.0
 defusedxml==0.6.0
 disjoint-set==0.6.2
