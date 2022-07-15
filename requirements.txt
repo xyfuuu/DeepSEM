@@ -36,7 +36,7 @@ dask==2.21.0
 decorator==4.3.0
 defusedxml==0.6.0
 disjoint-set==0.6.2
-distributed==2.21.0
+distributed==2021.10.0
 Django==3.0.2
 dlib==19.17.0
 docopt==0.6.2
